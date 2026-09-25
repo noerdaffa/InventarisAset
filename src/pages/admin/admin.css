@@ -1,0 +1,822 @@
+.d-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.d-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+}
+
+.d-card-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate-500);
+}
+
+.d-card-value {
+  margin-top: 6px;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+
+.d-card-sub {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--slate-400);
+}
+
+/* ─── Panel ─── */
+.d-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.d-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-800);
+}
+
+.d-panel-title::before {
+  content: '';
+  width: 4px;
+  height: 15px;
+  border-radius: 2px;
+  background: var(--brand-500);
+  flex-shrink: 0;
+}
+
+.d-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.d-panel-header .d-panel-title {
+  margin-bottom: 0;
+}
+
+.d-panel-info {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--slate-400);
+}
+
+/* ─── Toolbar ─── */
+.d-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+/* ─── Inputs ─── */
+.d-input,
+.d-select {
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--slate-300);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--slate-900);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.d-input:focus,
+.d-select:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+/* ─── Buttons ─── */
+.d-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.d-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.d-btn-primary {
+  background: var(--brand-500);
+  color: #fff;
+}
+
+.d-btn-primary:hover:not(:disabled) {
+  background: var(--brand-600);
+}
+
+.d-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.d-btn-secondary {
+  background: #fff;
+  color: var(--slate-700);
+  border: 1px solid var(--slate-300);
+}
+
+.d-btn-secondary:hover:not(:disabled) {
+  background: var(--slate-50);
+  border-color: var(--slate-400);
+}
+
+.d-btn-danger {
+  background: var(--red-100);
+  color: var(--red-500);
+}
+
+.d-btn-danger:hover:not(:disabled) {
+  background: var(--red-200);
+}
+
+.d-btn-success {
+  background: var(--green-100);
+  color: var(--green-500);
+}
+
+.d-btn-success:hover:not(:disabled) {
+  background: var(--green-200);
+}
+
+.d-btn-sm {
+  padding: 6px 11px;
+  font-size: 12.5px;
+  border-radius: 7px;
+}
+
+/* ─── Table ─── */
+.d-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.d-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  min-width: 700px;
+}
+
+.d-table th {
+  background: var(--brand-50);
+  color: var(--slate-500);
+  font-weight: 600;
+  font-size: 12px;
+  text-align: left;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.d-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--slate-100);
+  color: var(--slate-800);
+  vertical-align: middle;
+}
+
+.d-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.d-table tbody tr:hover td {
+  background: var(--slate-50);
+}
+
+/* ─── Badges ─── */
+.d-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.badge-baik,
+.badge-disetujui,
+.badge-dikembalikan {
+  background: var(--green-100);
+  color: var(--green-500);
+}
+
+.badge-rusak-ringan,
+.badge-menunggu {
+  background: var(--amber-100);
+  color: var(--amber-500);
+}
+
+.badge-rusak-berat,
+.badge-ditolak {
+  background: var(--red-100);
+  color: var(--red-500);
+}
+
+.badge-dipinjam {
+  background: var(--blue-100);
+  color: var(--blue-500);
+}
+
+.badge-default {
+  background: var(--slate-100);
+  color: var(--slate-500);
+}
+
+/* ─── Empty / loading ─── */
+.d-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--slate-400);
+  font-size: 14px;
+}
+
+.d-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  padding: 44px 20px;
+  color: var(--slate-400);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.d-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--slate-200);
+  border-top-color: var(--brand-500);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ─── Pagination ─── */
+.d-pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--slate-500);
+}
+
+/* ─── Modal ─── */
+.d-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 28, 64, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.d-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  border: 1px solid var(--border);
+}
+
+.d-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink-900);
+  margin-bottom: 16px;
+}
+
+.d-modal-title::before {
+  content: '';
+  width: 4px;
+  height: 15px;
+  border-radius: 2px;
+  background: var(--brand-500);
+}
+
+/* ─── Forms ─── */
+.d-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.d-form-grid .d-form-field.full {
+  grid-column: 1 / -1;
+}
+
+.d-form-field label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--slate-500);
+  margin-bottom: 5px;
+}
+
+.d-form-field input,
+.d-form-field select,
+.d-form-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--slate-300);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--slate-900);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.d-form-field input:focus,
+.d-form-field select:focus,
+.d-form-field textarea:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.d-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* ─── Alerts ─── */
+.d-alert {
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.d-alert-error {
+  background: var(--red-100);
+  color: var(--red-500);
+  border-color: var(--red-200);
+}
+
+.d-alert-success {
+  background: var(--green-100);
+  color: var(--green-500);
+  border-color: var(--green-200);
+}
+
+.d-alert-info {
+  background: var(--brand-50);
+  color: var(--blue-500);
+  border-color: var(--brand-200);
+}
+
+/* ─── Dropzone ─── */
+.d-dropzone {
+  border: 1.5px dashed var(--brand-400);
+  border-radius: var(--radius-md);
+  padding: 34px 20px;
+  text-align: center;
+  color: var(--slate-500);
+  cursor: pointer;
+  background: #fff;
+  font-weight: 500;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  display: block;
+}
+
+.d-dropzone:hover {
+  border-color: var(--brand-500);
+  background: var(--brand-50);
+}
+
+.d-dropzone.has-file {
+  border-color: var(--green-500);
+  background: var(--green-100);
+  color: var(--green-500);
+}
+
+/* ─── Checkbox ─── */
+.d-checkbox-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+}
+
+.d-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  color: var(--slate-700);
+}
+
+.d-checkbox-row:hover {
+  background: var(--slate-50);
+}
+
+/* ─── Bar charts ─── */
+.d-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 11px;
+  font-size: 13px;
+}
+
+.d-bar-label {
+  width: 150px;
+  color: var(--slate-500);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.d-bar-track {
+  flex: 1;
+  height: 10px;
+  background: var(--slate-100);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.d-bar-fill {
+  height: 100%;
+  background: var(--brand-500);
+  border-radius: 999px;
+}
+
+.d-bar-value {
+  width: 38px;
+  text-align: right;
+  color: var(--ink-900);
+  font-weight: 700;
+}
+
+/* ─── Search box ─── */
+.d-search-box {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.d-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--slate-400);
+  pointer-events: none;
+}
+
+.d-search-input {
+  width: 100%;
+  padding: 10px 32px 10px 36px;
+  border-radius: 8px;
+  border: 1px solid var(--slate-300);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--slate-900);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.d-search-input:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.d-search-clear {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--slate-200);
+  border: none;
+  color: var(--slate-500);
+  font-size: 12px;
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.d-search-clear:hover {
+  background: var(--slate-300);
+  color: var(--slate-900);
+}
+
+/* ─── Filter toggle ─── */
+.d-btn-filter-active {
+  border: 1px solid var(--brand-500);
+  color: var(--brand-500);
+  background: var(--brand-50);
+}
+
+.d-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-500);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  padding: 0 4px;
+}
+
+/* ─── Filter chips ─── */
+.d-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.d-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--brand-50);
+  color: var(--blue-500);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--blue-200);
+}
+
+.d-chip button {
+  background: none;
+  border: none;
+  color: var(--brand-400);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.d-chip button:hover {
+  color: var(--brand-600);
+}
+
+.d-chip-reset {
+  background: none;
+  border: none;
+  color: var(--red-500);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 5px 9px;
+  border-radius: 7px;
+}
+
+.d-chip-reset:hover {
+  background: var(--red-100);
+}
+
+/* ─── Filter panel ─── */
+.d-filter-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--slate-50);
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.d-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.d-filter-item label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate-500);
+  margin-bottom: 5px;
+}
+
+.d-filter-item select,
+.d-filter-item input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--slate-300);
+  font-size: 13.5px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--slate-900);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.d-filter-item select:focus,
+.d-filter-item input:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.d-range-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.d-range-group input {
+  flex: 1;
+  min-width: 0;
+}
+
+.d-range-sep {
+  color: var(--slate-400);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.d-filter-footer {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ─── Code chip ─── */
+.d-code {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-800);
+  background: var(--brand-50);
+  border: 1px solid var(--brand-200);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+/* ─── Action buttons ─── */
+.d-actions {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.d-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: none;
+  background: var(--slate-50);
+  color: var(--slate-500);
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+
+.d-action-btn:hover {
+  background: var(--brand-50);
+  color: var(--brand-500);
+}
+
+.d-action-delete:hover {
+  background: var(--red-100);
+  color: var(--red-500);
+}
+
+.d-action-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* =========================================================
+   Admin Sidebar Overrides — Amber/Gold Accent Identity
+   Extends the shared user Dashboard.css dash-* system
+   Differentiates admin (amber) from user (blue) portals
+   ========================================================= */
+
+/* Remove anchor underline — NavLink renders as <a>, user uses <button> */
+a.dash-nav-item,
+a.dash-nav-item:hover,
+a.dash-nav-item:visited,
+a.dash-nav-item:active,
+a.dash-nav-item:focus {
+  text-decoration: none;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+/* Admin badge role — amber instead of sky blue */
+.admin-badge-role {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.28) !important;
+  color: #fde68a !important;
+}
+
+/* Admin pulse dot — amber */
+.admin-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+  animation: dash-dot-pulse 2.2s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+/* Admin avatar — deep amber gradient */
+.admin-avatar {
+  background: linear-gradient(135deg, #d97706 0%, #92400e 100%) !important;
+}
+
+/* Admin nav active item — amber instead of sky-blue */
+.dash-shell .dash-nav-item.active {
+  background: #d97706;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+  text-decoration: none;
+  color: #ffffff;
+}
+
+/* Admin hero tag — amber */
+.admin-hero-tag {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+}
+
+.admin-tag-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+/* Admin hero title accent */
+.admin-hero-title span {
+  color: #d97706 !important;
+}
+
+/* Admin KPI icons */
+.admin-kpi-amber {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.admin-kpi-red {
+  background: #fee2e2;
+  color: #dc2626;
+}
