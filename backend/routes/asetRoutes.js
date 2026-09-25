@@ -35,6 +35,7 @@ router.get("/", async (req, res) => {
       tanggal_sampai = "",
       nilai_min = "",
       nilai_max = "",
+      ketersediaan = "",
       page = 1,
       limit = 10,
       sort_by = "id",
@@ -78,6 +79,15 @@ router.get("/", async (req, res) => {
       where.push("nilai_perolehan <= ?");
       params.push(nilai_max);
     }
+    if (ketersediaan === "tersedia") {
+      where.push(
+        "NOT EXISTS (SELECT 1 FROM detail_peminjaman dp JOIN peminjaman p ON dp.peminjaman_id = p.id WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN'))"
+      );
+    } else if (ketersediaan === "dipinjam") {
+      where.push(
+        "EXISTS (SELECT 1 FROM detail_peminjaman dp JOIN peminjaman p ON dp.peminjaman_id = p.id WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN'))"
+      );
+    }
 
     const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
@@ -97,8 +107,63 @@ router.get("/", async (req, res) => {
     const limitNum = Math.min(Math.max(parseInt(limit) || 10, 1), 200);
     const offset = (pageNum - 1) * limitNum;
 
+    const selectFields = `
+      a.*,
+      (
+        SELECT p.status
+        FROM detail_peminjaman dp
+        JOIN peminjaman p ON dp.peminjaman_id = p.id
+        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        ORDER BY p.id DESC LIMIT 1
+      ) AS status_pinjam,
+      (
+        SELECT COALESCE(u.nama, pg.nama, p.nip)
+        FROM detail_peminjaman dp
+        JOIN peminjaman p ON dp.peminjaman_id = p.id
+        LEFT JOIN user u ON p.nip = u.nip
+        LEFT JOIN pegawai pg ON p.nip = pg.nip
+        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        ORDER BY p.id DESC LIMIT 1
+      ) AS peminjam_nama,
+      (
+        SELECT p.nip
+        FROM detail_peminjaman dp
+        JOIN peminjaman p ON dp.peminjaman_id = p.id
+        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        ORDER BY p.id DESC LIMIT 1
+      ) AS peminjam_nip,
+      (
+        SELECT p.id
+        FROM detail_peminjaman dp
+        JOIN peminjaman p ON dp.peminjaman_id = p.id
+        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        ORDER BY p.id DESC LIMIT 1
+      ) AS peminjaman_id,
+      (
+        SELECT p.tanggal_pinjam
+        FROM detail_peminjaman dp
+        JOIN peminjaman p ON dp.peminjaman_id = p.id
+        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        ORDER BY p.id DESC LIMIT 1
+      ) AS pinjam_tanggal,
+      (
+        SELECT p.tanggal_rencana_kembali
+        FROM detail_peminjaman dp
+        JOIN peminjaman p ON dp.peminjaman_id = p.id
+        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        ORDER BY p.id DESC LIMIT 1
+      ) AS pinjam_rencana_kembali,
+      (
+        SELECT p.tanggal_kembali
+        FROM detail_peminjaman dp
+        JOIN peminjaman p ON dp.peminjaman_id = p.id
+        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        ORDER BY p.id DESC LIMIT 1
+      ) AS pinjam_tanggal_kembali
+    `;
+
     const [rows] = await promiseDb.query(
-      `SELECT * FROM aset ${whereSql} ORDER BY ${sortColumn} ${sortDirection} LIMIT ? OFFSET ?`,
+      `SELECT ${selectFields} FROM aset a ${whereSql} ORDER BY a.${sortColumn} ${sortDirection} LIMIT ? OFFSET ?`,
       [...params, limitNum, offset]
     );
 
@@ -119,6 +184,45 @@ router.get("/", async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, message: "Gagal mengambil data aset", error: err.message });
+  }
+});
+
+// GET /api/aset/ringkasan-status -> ringkasan statistik aset & peminjaman
+router.get("/ringkasan-status", async (req, res) => {
+  try {
+    const [[{ total_aset }]] = await promiseDb.query("SELECT COUNT(*) AS total_aset FROM aset");
+    const [[{ aset_dipinjam }]] = await promiseDb.query(
+      `SELECT COUNT(DISTINCT dp.aset_id) AS aset_dipinjam
+       FROM detail_peminjaman dp
+       JOIN peminjaman p ON dp.peminjaman_id = p.id
+       WHERE p.status IN ('DIPINJAM', 'MENUNGGU_PENGEMBALIAN')`
+    );
+    const [[{ peminjaman_menunggu }]] = await promiseDb.query(
+      "SELECT COUNT(*) AS peminjaman_menunggu FROM peminjaman WHERE status = 'MENUNGGU'"
+    );
+    const [[{ pengembalian_menunggu }]] = await promiseDb.query(
+      "SELECT COUNT(*) AS pengembalian_menunggu FROM peminjaman WHERE status = 'MENUNGGU_PENGEMBALIAN'"
+    );
+    const [[{ pengembalian_selesai }]] = await promiseDb.query(
+      "SELECT COUNT(*) AS pengembalian_selesai FROM peminjaman WHERE status = 'DIKEMBALIKAN'"
+    );
+
+    const total = total_aset || 0;
+    const dipinjam = aset_dipinjam || 0;
+
+    res.json({
+      success: true,
+      data: {
+        total_aset: total,
+        aset_tersedia: Math.max(total - dipinjam, 0),
+        aset_dipinjam: dipinjam,
+        peminjaman_menunggu: peminjaman_menunggu || 0,
+        pengembalian_menunggu: pengembalian_menunggu || 0,
+        pengembalian_selesai: pengembalian_selesai || 0,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal memuat ringkasan aset", error: err.message });
   }
 });
 

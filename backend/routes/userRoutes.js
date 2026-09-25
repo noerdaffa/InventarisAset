@@ -47,6 +47,14 @@ router.post("/register", async (req, res) => {
       [nip.trim(), nama.trim(), password]
     );
 
+    // Pastikan tabel pegawai juga sinkron agar foreign key peminjaman valid
+    try {
+      await promiseDb.query(
+        "INSERT INTO pegawai (nip, nama, password) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE nama = VALUES(nama), password = VALUES(password)",
+        [nip.trim(), nama.trim(), password]
+      );
+    } catch (_) {}
+
     res.status(201).json({
       success: true,
       message: "Registrasi berhasil",
@@ -120,6 +128,13 @@ router.put("/:nip", async (req, res) => {
       });
     }
 
+    try {
+      await promiseDb.query(
+        "UPDATE pegawai SET nama = ? WHERE nip = ?",
+        [nama.trim(), nip]
+      );
+    } catch (_) {}
+
     res.json({
       success: true,
       message: "Profil berhasil diperbarui",
@@ -177,6 +192,13 @@ router.put("/:nip/change-password", async (req, res) => {
       "UPDATE user SET password = ? WHERE nip = ?",
       [password_baru, nip]
     );
+
+    try {
+      await promiseDb.query(
+        "UPDATE pegawai SET password = ? WHERE nip = ?",
+        [password_baru, nip]
+      );
+    } catch (_) {}
 
     res.json({
       success: true,

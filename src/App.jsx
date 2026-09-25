@@ -5,6 +5,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminLayout from "./pages/admin/layout/AdminLayout";
 import ImportData from "./pages/admin/ImportData";
 import KelolaAset from "./pages/admin/KelolaAset";
+import KelolaPeminjaman from "./pages/admin/KelolaPeminjaman";
 import Monitoring from "./pages/admin/Monitoring";
 import ExportPdf from "./pages/admin/ExportPdf";
 import UserLogin from "./pages/user/Login";
@@ -25,6 +26,7 @@ function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="import" element={<ImportData />} />
           <Route path="aset" element={<KelolaAset />} />
+          <Route path="peminjaman" element={<KelolaPeminjaman />} />
           <Route path="monitoring" element={<Monitoring />} />
           <Route path="export" element={<ExportPdf />} />
         </Route>

@@ -150,7 +150,8 @@ function UserRegister() {
               <input
                 id="register-nip"
                 className="auth-control"
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={form.nip}
                 onChange={update("nip")}
                 autoComplete="username"

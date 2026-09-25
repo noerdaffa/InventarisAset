@@ -140,7 +140,8 @@ function UserLogin() {
               <input
                 id="user-nip"
                 className="auth-control"
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={form.nip}
                 onChange={(e) => setForm({ ...form, nip: e.target.value })}
                 autoComplete="username"
