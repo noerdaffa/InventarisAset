@@ -74,7 +74,7 @@ router.get("/aktif-dipinjam", async (req, res) => {
     const params = [];
 
     if (search) {
-      where.push("(COALESCE(u.nama, pg.nama) LIKE ? OR p.nip LIKE ? OR a.nama_barang LIKE ?)");
+      where.push("(COALESCE(pg.nama, p.nip) LIKE ? OR p.nip LIKE ? OR a.nama_barang LIKE ?)");
       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
 
@@ -82,7 +82,7 @@ router.get("/aktif-dipinjam", async (req, res) => {
 
     const [rows] = await promiseDb.query(
       `SELECT
-         p.id, p.nip, COALESCE(u.nama, pg.nama, p.nip) AS nama_pegawai,
+         p.id, p.nip, COALESCE(pg.nama, p.nip) AS nama_pegawai,
          p.status,
          p.tanggal_pinjam, p.tanggal_rencana_kembali, p.tanggal_kembali, p.keterangan, p.created_at,
          DATEDIFF(CURDATE(), p.tanggal_rencana_kembali) AS hari_terlambat,
@@ -92,7 +92,6 @@ router.get("/aktif-dipinjam", async (req, res) => {
          GROUP_CONCAT(a.id ORDER BY a.id SEPARATOR ',') AS aset_ids,
          GROUP_CONCAT(IFNULL(dp.kondisi_saat_kembali, dp.kondisi_saat_pinjam) ORDER BY a.id SEPARATOR ', ') AS kondisi_laporan
        FROM peminjaman p
-       LEFT JOIN user u ON p.nip = u.nip
        LEFT JOIN pegawai pg ON p.nip = pg.nip
        JOIN detail_peminjaman dp ON dp.peminjaman_id = p.id
        JOIN aset a ON dp.aset_id = a.id
@@ -157,7 +156,7 @@ router.get("/", async (req, res) => {
       params.push(status);
     }
     if (search) {
-      where.push("(COALESCE(u.nama, pg.nama) LIKE ? OR p.nip LIKE ? OR a.nama_barang LIKE ?)");
+      where.push("(COALESCE(pg.nama, p.nip) LIKE ? OR p.nip LIKE ? OR a.nama_barang LIKE ?)");
       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
 
@@ -166,7 +165,6 @@ router.get("/", async (req, res) => {
     const [[{ total }]] = await promiseDb.query(
       `SELECT COUNT(DISTINCT p.id) AS total
        FROM peminjaman p
-       LEFT JOIN user u ON p.nip = u.nip
        LEFT JOIN pegawai pg ON p.nip = pg.nip
        LEFT JOIN detail_peminjaman dp ON dp.peminjaman_id = p.id
        LEFT JOIN aset a ON dp.aset_id = a.id
@@ -176,14 +174,13 @@ router.get("/", async (req, res) => {
 
     const [rows] = await promiseDb.query(
       `SELECT
-         p.id, p.nip, COALESCE(u.nama, pg.nama, p.nip) AS nama_pegawai,
+         p.id, p.nip, COALESCE(pg.nama, p.nip) AS nama_pegawai,
          p.tanggal_pinjam, p.tanggal_rencana_kembali, p.tanggal_kembali,
          p.status, p.keterangan, p.created_at,
          GROUP_CONCAT(a.nama_barang ORDER BY a.id SEPARATOR ', ') AS nama_aset,
          GROUP_CONCAT(a.id ORDER BY a.id SEPARATOR ',') AS aset_ids,
          GROUP_CONCAT(dp.id ORDER BY a.id SEPARATOR ',') AS detail_ids
        FROM peminjaman p
-       LEFT JOIN user u ON p.nip = u.nip
        LEFT JOIN pegawai pg ON p.nip = pg.nip
        LEFT JOIN detail_peminjaman dp ON dp.peminjaman_id = p.id
        LEFT JOIN aset a ON dp.aset_id = a.id
@@ -213,9 +210,8 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const [rows] = await promiseDb.query(
-      `SELECT p.*, COALESCE(u.nama, pg.nama, p.nip) AS nama_pegawai
+      `SELECT p.*, COALESCE(pg.nama, p.nip) AS nama_pegawai
        FROM peminjaman p
-       LEFT JOIN user u ON p.nip = u.nip
        LEFT JOIN pegawai pg ON p.nip = pg.nip
        WHERE p.id = ?`,
       [req.params.id]
@@ -260,14 +256,8 @@ router.post("/", async (req, res) => {
     await conn.beginTransaction();
 
     // Pastikan NIP terdaftar di tabel pegawai agar foreign key fk_peminjaman_pegawai valid
-    const [uRows] = await conn.query("SELECT nip, nama, password FROM user WHERE nip = ?", [nip]);
-    if (uRows.length > 0) {
-      await conn.query(
-        "INSERT INTO pegawai (nip, nama, password) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE nama = VALUES(nama), password = VALUES(password)",
-        [uRows[0].nip, uRows[0].nama, uRows[0].password]
-      );
-    } else {
-      // Jika NIP belum ada di tabel user maupun pegawai, buat record pegawai dasar
+    const [pgRows] = await conn.query("SELECT nip, nama FROM pegawai WHERE nip = ?", [nip]);
+    if (pgRows.length === 0) {
       await conn.query(
         "INSERT IGNORE INTO pegawai (nip, nama, password) VALUES (?, ?, ?)",
         [nip, `Pegawai ${nip}`, "pegawai123"]
@@ -280,7 +270,7 @@ router.post("/", async (req, res) => {
       `SELECT a.id, a.nama_barang FROM aset a
        JOIN detail_peminjaman dp ON dp.aset_id = a.id
        JOIN peminjaman p ON dp.peminjaman_id = p.id
-       WHERE a.id IN (${placeholders}) AND p.status IN ('DISETUJUI','DIPINJAM')`,
+       WHERE a.id IN (${placeholders}) AND p.status IN ('DISETUJUI','DIPINJAM','MENUNGGU_PENGEMBALIAN')`,
       aset_ids
     );
 
@@ -463,11 +453,18 @@ router.put("/:id/ajukan-kembali", async (req, res) => {
     );
 
     // Simpan kondisi saat kembali yang dilaporkan user
-    if (kondisi_kembali && typeof kondisi_kembali === "object") {
-      for (const [asetId, kondisi] of Object.entries(kondisi_kembali)) {
+    if (kondisi_kembali) {
+      if (typeof kondisi_kembali === "object" && !Array.isArray(kondisi_kembali)) {
+        for (const [asetId, kondisi] of Object.entries(kondisi_kembali)) {
+          await conn.query(
+            "UPDATE detail_peminjaman SET kondisi_saat_kembali = ? WHERE peminjaman_id = ? AND aset_id = ?",
+            [kondisi, req.params.id, asetId]
+          );
+        }
+      } else if (typeof kondisi_kembali === "string") {
         await conn.query(
-          "UPDATE detail_peminjaman SET kondisi_saat_kembali = ? WHERE peminjaman_id = ? AND aset_id = ?",
-          [kondisi, req.params.id, asetId]
+          "UPDATE detail_peminjaman SET kondisi_saat_kembali = ? WHERE peminjaman_id = ?",
+          [kondisi_kembali, req.params.id]
         );
       }
     }
@@ -500,9 +497,8 @@ router.put("/:id/kembalikan", async (req, res) => {
     await conn.beginTransaction();
 
     const [rows] = await conn.query(
-      `SELECT p.*, COALESCE(u.nama, pg.nama, p.nip) AS nama_pegawai
+      `SELECT p.*, COALESCE(pg.nama, p.nip) AS nama_pegawai
        FROM peminjaman p
-       LEFT JOIN user u ON p.nip = u.nip
        LEFT JOIN pegawai pg ON p.nip = pg.nip
        WHERE p.id = ?`,
       [req.params.id]

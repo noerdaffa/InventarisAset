@@ -47,9 +47,9 @@ router.get("/", async (req, res) => {
 
     if (search) {
       where.push(
-        "(nama_barang LIKE ? OR kode_barang LIKE ? OR nama_satker LIKE ? OR merk LIKE ? OR tipe LIKE ? OR nama LIKE ?)"
+        "(nama_barang LIKE ? OR kode_barang LIKE ? OR nama_satker LIKE ? OR merk LIKE ? OR tipe LIKE ? OR nama LIKE ? OR CAST(nup AS CHAR) LIKE ?)"
       );
-      for (let i = 0; i < 6; i++) params.push(`%${search}%`);
+      for (let i = 0; i < 7; i++) params.push(`%${search}%`);
     }
     if (kondisi) {
       where.push("kondisi = ?");
@@ -117,10 +117,9 @@ router.get("/", async (req, res) => {
         ORDER BY p.id DESC LIMIT 1
       ) AS status_pinjam,
       (
-        SELECT COALESCE(u.nama, pg.nama, p.nip)
+        SELECT COALESCE(pg.nama, p.nip)
         FROM detail_peminjaman dp
         JOIN peminjaman p ON dp.peminjaman_id = p.id
-        LEFT JOIN user u ON p.nip = u.nip
         LEFT JOIN pegawai pg ON p.nip = pg.nip
         WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
         ORDER BY p.id DESC LIMIT 1
@@ -168,7 +167,7 @@ router.get("/", async (req, res) => {
     );
 
     const [countRows] = await promiseDb.query(
-      `SELECT COUNT(*) AS total FROM aset ${whereSql}`,
+      `SELECT COUNT(*) AS total FROM aset a ${whereSql}`,
       params
     );
 
@@ -380,13 +379,29 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { admin_id } = req.body;
+    const adminId = parseInt(req.body?.admin_id || req.query.admin_id, 10) || null;
     const [existingRows] = await promiseDb.query("SELECT * FROM aset WHERE id = ?", [id]);
     if (existingRows.length === 0) {
       return res.status(404).json({ success: false, message: "Aset tidak ditemukan" });
     }
 
-    await catatRiwayat(id, admin_id, "HAPUS", "Aset dihapus", existingRows[0], null);
+    // Cek apakah aset sedang dalam peminjaman aktif
+    const [activeLoan] = await promiseDb.query(
+      `SELECT dp.id FROM detail_peminjaman dp
+       JOIN peminjaman p ON dp.peminjaman_id = p.id
+       WHERE dp.aset_id = ? AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+       LIMIT 1`,
+      [id]
+    );
+
+    if (activeLoan.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Aset tidak dapat dihapus karena sedang dalam peminjaman aktif",
+      });
+    }
+
+    await catatRiwayat(id, adminId, "HAPUS", "Aset dihapus", existingRows[0], null);
 
     // Jika aset berasal dari batch import, kurangi jumlah_berhasil pada riwayat import
     if (existingRows[0].import_id) {
@@ -408,7 +423,7 @@ router.delete("/:id", async (req, res) => {
 router.get("/:id/riwayat", async (req, res) => {
   try {
     const [rows] = await promiseDb.query(
-      `SELECT r.*, a.name AS admin_name FROM riwayat_aset r
+      `SELECT r.*, a.username AS admin_name FROM riwayat_aset r
        LEFT JOIN admin a ON a.id = r.admin_id
        WHERE r.aset_id = ? ORDER BY r.created_at DESC`,
       [req.params.id]

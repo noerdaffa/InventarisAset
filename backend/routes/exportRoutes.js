@@ -75,8 +75,8 @@ router.get("/aset/pdf", async (req, res) => {
     const where = [];
     const params = [];
     if (search) {
-      where.push("(nama_barang LIKE ? OR kode_barang LIKE ? OR nama_satker LIKE ?)");
-      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+      where.push("(nama_barang LIKE ? OR kode_barang LIKE ? OR nama_satker LIKE ? OR CAST(nup AS CHAR) LIKE ?)");
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
     }
     if (kondisi) {
       where.push("kondisi = ?");
@@ -133,7 +133,9 @@ router.get("/aset/pdf", async (req, res) => {
 
     doc.end();
   } catch (err) {
-    res.status(500).json({ success: false, message: "Gagal membuat PDF aset", error: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: "Gagal membuat PDF aset", error: err.message });
+    }
   }
 });
 

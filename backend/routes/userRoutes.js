@@ -5,7 +5,7 @@ const promiseDb = db.promisePool;
 
 router.get("/", async (req, res) => {
   try {
-    const [rows] = await promiseDb.query("SELECT nip, nama, created_at FROM user ORDER BY nama ASC");
+    const [rows] = await promiseDb.query("SELECT nip, nama, created_at FROM pegawai ORDER BY nama ASC");
     res.json({ success: true, data: rows });
   } catch (err) {
     res.status(500).json({ success: false, message: "Gagal mengambil data pegawai", error: err.message });
@@ -30,9 +30,12 @@ router.post("/register", async (req, res) => {
   }
 
   try {
+    const trimmedNip = nip.trim();
+    const trimmedNama = nama.trim();
+
     const [existingUsers] = await promiseDb.query(
-      "SELECT nip FROM user WHERE nip = ?",
-      [nip.trim()]
+      "SELECT nip FROM pegawai WHERE nip = ?",
+      [trimmedNip]
     );
 
     if (existingUsers.length > 0) {
@@ -43,22 +46,14 @@ router.post("/register", async (req, res) => {
     }
 
     await promiseDb.query(
-      "INSERT INTO user (nip, nama, password) VALUES (?, ?, ?)",
-      [nip.trim(), nama.trim(), password]
+      "INSERT INTO pegawai (nip, nama, password) VALUES (?, ?, ?)",
+      [trimmedNip, trimmedNama, password]
     );
-
-    // Pastikan tabel pegawai juga sinkron agar foreign key peminjaman valid
-    try {
-      await promiseDb.query(
-        "INSERT INTO pegawai (nip, nama, password) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE nama = VALUES(nama), password = VALUES(password)",
-        [nip.trim(), nama.trim(), password]
-      );
-    } catch (_) {}
 
     res.status(201).json({
       success: true,
       message: "Registrasi berhasil",
-      data: { nip: nip.trim(), nama: nama.trim() },
+      data: { nip: trimmedNip, nama: trimmedNama },
     });
   } catch (err) {
     res.status(500).json({
@@ -81,7 +76,7 @@ router.post("/login", async (req, res) => {
 
   try {
     const [users] = await promiseDb.query(
-      "SELECT nip, nama, password, created_at FROM user WHERE nip = ?",
+      "SELECT nip, nama, password, created_at FROM pegawai WHERE nip = ?",
       [nip.trim()]
     );
 
@@ -117,7 +112,7 @@ router.put("/:nip", async (req, res) => {
 
   try {
     const [result] = await promiseDb.query(
-      "UPDATE user SET nama = ? WHERE nip = ?",
+      "UPDATE pegawai SET nama = ? WHERE nip = ?",
       [nama.trim(), nip]
     );
 
@@ -127,13 +122,6 @@ router.put("/:nip", async (req, res) => {
         message: "User tidak ditemukan",
       });
     }
-
-    try {
-      await promiseDb.query(
-        "UPDATE pegawai SET nama = ? WHERE nip = ?",
-        [nama.trim(), nip]
-      );
-    } catch (_) {}
 
     res.json({
       success: true,
@@ -170,7 +158,7 @@ router.put("/:nip/change-password", async (req, res) => {
 
   try {
     const [users] = await promiseDb.query(
-      "SELECT password FROM user WHERE nip = ?",
+      "SELECT password FROM pegawai WHERE nip = ?",
       [nip]
     );
 
@@ -189,16 +177,9 @@ router.put("/:nip/change-password", async (req, res) => {
     }
 
     await promiseDb.query(
-      "UPDATE user SET password = ? WHERE nip = ?",
+      "UPDATE pegawai SET password = ? WHERE nip = ?",
       [password_baru, nip]
     );
-
-    try {
-      await promiseDb.query(
-        "UPDATE pegawai SET password = ? WHERE nip = ?",
-        [password_baru, nip]
-      );
-    } catch (_) {}
 
     res.json({
       success: true,

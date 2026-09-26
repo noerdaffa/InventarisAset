@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const db = require("./db");
 const adminRoutes = require("./routes/adminRoutes");
 const asetRoutes = require("./routes/asetRoutes");
@@ -12,8 +13,11 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api", adminRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/aset", asetRoutes);
 app.use("/api/import", importRoutes);
 app.use("/api/monitoring", monitoringRoutes);
@@ -38,6 +42,19 @@ app.get("/api/test-db", (req, res) => {
       message: "Database berhasil terhubung",
       data: result,
     });
+  });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("Unhandled Backend Error:", err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Terjadi kesalahan pada server",
+    error: err.message,
   });
 });
 

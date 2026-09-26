@@ -131,7 +131,7 @@ router.post("/aset", upload.single("file"), async (req, res) => {
     return res.status(400).json({ success: false, message: "File excel wajib diunggah" });
   }
 
-  const adminId = req.body.admin_id || null;
+  const adminId = parseInt(req.body.admin_id, 10) || null;
   const errors = [];
   let sukses = 0;
   const seenKeys = new Set();
@@ -255,18 +255,6 @@ router.post("/aset", upload.single("file"), async (req, res) => {
       }
     }
 
-    // Selaraskan tabel aset dengan isi file: hapus semua baris yang tidak
-    // tercantum di excel agar database mencerminkan data asli import.
-    let dihapus = 0;
-    if (goodKeys.length > 0) {
-      const placeholders = goodKeys.map(() => "?").join(",");
-      const [delResult] = await promiseDb.query(
-        `DELETE FROM aset WHERE CONCAT(kode_barang, '|', nup) NOT IN (${placeholders})`,
-        goodKeys
-      );
-      dihapus = delResult.affectedRows || 0;
-    }
-
     // Update jumlah di import_data
     await promiseDb.query(
       `UPDATE import_data SET jumlah_berhasil = ?, jumlah_gagal = ? WHERE id = ?`,
@@ -275,8 +263,8 @@ router.post("/aset", upload.single("file"), async (req, res) => {
 
     res.json({
       success: true,
-      message: `Import selesai: ${sukses} berhasil, ${errors.length} gagal dari ${built.length} baris${dihapus > 0 ? `, ${dihapus} data lama dihapus karena tidak ada di excel` : ""}`,
-      data: { total: built.length, berhasil: sukses, gagal: errors.length, errors: errors.slice(0, 50), dihapus },
+      message: `Import selesai: ${sukses} berhasil, ${errors.length} gagal dari ${built.length} baris`,
+      data: { total: built.length, berhasil: sukses, gagal: errors.length, errors: errors.slice(0, 50) },
     });
   } catch (err) {
     res.status(500).json({ success: false, message: "Gagal memproses file excel", error: err.message });
@@ -350,7 +338,7 @@ router.delete("/:id/aset/:asetId", async (req, res) => {
 router.get("/riwayat", async (req, res) => {
   try {
     const [rows] = await promiseDb.query(
-      `SELECT i.*, a.name AS admin_name FROM import_data i
+      `SELECT i.*, a.username AS admin_name FROM import_data i
        LEFT JOIN admin a ON a.id = i.admin_id
        ORDER BY i.imported_at DESC LIMIT 50`
     );
@@ -388,9 +376,26 @@ router.delete("/:id", async (req, res) => {
 
     console.log("Aset count:", asetCount[0].total);
 
+    // Cek apakah ada aset dalam batch ini yang sedang dipinjam
+    const [activeLoan] = await promiseDb.query(
+      `SELECT dp.id FROM detail_peminjaman dp
+       JOIN peminjaman p ON dp.peminjaman_id = p.id
+       JOIN aset a ON dp.aset_id = a.id
+       WHERE a.import_id = ? AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+       LIMIT 1`,
+      [id]
+    );
+
+    if (activeLoan.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Batch import tidak dapat dihapus karena terdapat aset di dalamnya yang sedang dalam peminjaman aktif",
+      });
+    }
+
     // Hapus semua aset dari batch import ini (jika ada)
     if (asetCount[0].total > 0) {
-      const deleteAsetResult = await promiseDb.query(
+      const [deleteAsetResult] = await promiseDb.query(
         "DELETE FROM aset WHERE import_id = ?",
         [id]
       );
@@ -399,7 +404,7 @@ router.delete("/:id", async (req, res) => {
     }
 
     // Hapus record import_data
-    const deleteImportResult = await promiseDb.query(
+    const [deleteImportResult] = await promiseDb.query(
       "DELETE FROM import_data WHERE id = ?",
       [id]
     );

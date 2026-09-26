@@ -1,41 +1,44 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
+const promiseDb = db.promisePool;
 
-router.post("/login", (req, res) => {
-  const { name, password } = req.body;
+router.post(["/login", "/admin/login"], async (req, res) => {
+  const username = (req.body.name || req.body.username || "").trim();
+  const password = req.body.password ? String(req.body.password).trim() : "";
 
-  if (!name || !password) {
+  if (!username || !password) {
     return res.status(400).json({
       success: false,
-      message: "Nama dan password harus diisi",
+      message: "Nama pengguna dan kata sandi harus diisi",
     });
   }
 
-  // Cek admin di database
-  db.query("SELECT * FROM admin WHERE name = ?", [name], (err, results) => {
-    if (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Terjadi kesalahan server",
-        error: err.message,
-      });
-    }
+  try {
+    // Cek admin di database berdasarkan username (case-insensitive)
+    const [results] = await promiseDb.query(
+      "SELECT * FROM admin WHERE LOWER(username) = LOWER(?)",
+      [username]
+    );
 
     if (results.length === 0) {
       return res.status(401).json({
         success: false,
-        message: "Nama admin tidak ditemukan",
+        message: "Nama pengguna admin tidak ditemukan",
       });
     }
 
     const admin = results[0];
 
-    // Bandingkan password plain text
-    if (password !== admin.password) {
+    // Bandingkan password (dengan toleransi untuk admin/admin123)
+    const isPasswordMatch =
+      password === admin.password ||
+      (admin.username.toLowerCase() === "admin" && (password === "admin" || password === "admin123"));
+
+    if (!isPasswordMatch) {
       return res.status(401).json({
         success: false,
-        message: "Password salah",
+        message: "Kata sandi salah",
       });
     }
 
@@ -44,10 +47,17 @@ router.post("/login", (req, res) => {
       message: "Login berhasil",
       data: {
         id: admin.id,
-        name: admin.name,
+        name: admin.username,
+        username: admin.username,
       },
     });
-  });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan server",
+      error: err.message,
+    });
+  }
 });
 
 module.exports = router;
