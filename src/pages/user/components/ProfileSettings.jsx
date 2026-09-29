@@ -1,8 +1,11 @@
 import React, { useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import api from "../../../api";
 import "./ProfileSettings.css";
 
-function ProfileSettings({ userData }) {
+function ProfileSettings({ userData: propUserData }) {
+  const outletCtx = useOutletContext();
+  const userData = propUserData || outletCtx?.userData || JSON.parse(localStorage.getItem("userData") || "null");
   const [profile, setProfile] = useState({
     nip: userData?.nip || "",
     nama: userData?.nama || "",

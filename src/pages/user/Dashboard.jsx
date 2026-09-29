@@ -1,12 +1,10 @@
 import React, { useState, useMemo } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import ProfileSettings from "./components/ProfileSettings";
-import AsetList from "./components/AsetList";
+import { Navigate, useNavigate, useLocation, NavLink, Outlet } from "react-router-dom";
 import "./Dashboard.css";
 
 const MENU = [
   {
-    id: "aset",
+    path: "/user/aset",
     label: "Daftar Aset BMN",
     subtitle: "Katalog & Pengajuan Pinjam",
     icon: (
@@ -18,7 +16,7 @@ const MENU = [
     ),
   },
   {
-    id: "peminjaman",
+    path: "/user/peminjaman",
     label: "Peminjaman Saya",
     subtitle: "Status Permohonan Pinjam",
     icon: (
@@ -32,7 +30,7 @@ const MENU = [
     ),
   },
   {
-    id: "pengembalian",
+    path: "/user/pengembalian",
     label: "Pengembalian Aset",
     subtitle: "Kembalikan Barang Dinas",
     icon: (
@@ -43,7 +41,7 @@ const MENU = [
     ),
   },
   {
-    id: "profile",
+    path: "/user/profile",
     label: "Profil Pegawai",
     subtitle: "Identitas & Keamanan Akun",
     icon: (
@@ -55,10 +53,18 @@ const MENU = [
   },
 ];
 
+const PAGE_TITLES = {
+  "/user/aset": "Daftar Aset BMN",
+  "/user/peminjaman": "Peminjaman Saya",
+  "/user/pengembalian": "Pengembalian Aset",
+  "/user/profile": "Profil Pegawai",
+  "/user/profil": "Profil Pegawai",
+};
+
 function UserDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const userData = JSON.parse(localStorage.getItem("userData") || "null");
-  const [activeTab, setActiveTab] = useState("aset");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const formattedDate = useMemo(() => {
@@ -81,14 +87,23 @@ function UserDashboard() {
     navigate("/user/login");
   };
 
-  const activeMenu = MENU.find((m) => m.id === activeTab);
+  const currentTitle =
+    PAGE_TITLES[location.pathname] ||
+    MENU.find((m) => location.pathname.startsWith(m.path))?.label ||
+    "Layanan Inventaris";
 
   return (
     <div className="dash-shell">
       {/* Sidebar Navigasi */}
       <aside className={`dash-sidebar ${sidebarOpen ? "" : "collapsed"}`}>
         <div className="dash-sidebar-header">
-          <div className="dash-brand-wrap">
+          <div
+            className="dash-brand-wrap"
+            onClick={() => navigate("/user/aset")}
+            style={{ cursor: "pointer" }}
+            role="button"
+            title="Ke Daftar Aset"
+          >
             <div className="dash-brand-logo">
               <img src="/logo-bmkg.png" alt="Logo BMKG" />
             </div>
@@ -111,25 +126,22 @@ function UserDashboard() {
           <div className="dash-nav-section-label">
             {sidebarOpen ? "MENU NAVIGASI" : "•••"}
           </div>
-          {MENU.map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`dash-nav-item ${isActive ? "active" : ""}`}
-                title={item.label}
-              >
-                <span className="dash-nav-icon">{item.icon}</span>
-                {sidebarOpen && (
-                  <div className="dash-nav-text">
-                    <span className="dash-nav-title">{item.label}</span>
-                    <span className="dash-nav-sub">{item.subtitle}</span>
-                  </div>
-                )}
-              </button>
-            );
-          })}
+          {MENU.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) => `dash-nav-item ${isActive ? "active" : ""}`}
+              title={item.label}
+            >
+              <span className="dash-nav-icon">{item.icon}</span>
+              {sidebarOpen && (
+                <div className="dash-nav-text">
+                  <span className="dash-nav-title">{item.label}</span>
+                  <span className="dash-nav-sub">{item.subtitle}</span>
+                </div>
+              )}
+            </NavLink>
+          ))}
         </nav>
 
         <div className="dash-sidebar-footer">
@@ -172,7 +184,7 @@ function UserDashboard() {
             <div className="dash-breadcrumb">
               <span className="dash-bc-parent">Layanan Inventaris</span>
               <span className="dash-bc-sep">/</span>
-              <span className="dash-bc-current">{activeMenu?.label}</span>
+              <span className="dash-bc-current">{currentTitle}</span>
             </div>
           </div>
 
@@ -187,7 +199,7 @@ function UserDashboard() {
               <span>{formattedDate}</span>
             </div>
 
-            <div className="dash-user-chip" onClick={() => setActiveTab("profile")} role="button" title="Buka profil pegawai">
+            <div className="dash-user-chip" onClick={() => navigate("/user/profile")} role="button" title="Buka profil pegawai">
               <div className="dash-user-avatar">
                 {userData.nama?.[0]?.toUpperCase() || "P"}
               </div>
@@ -199,7 +211,7 @@ function UserDashboard() {
           </div>
         </header>
 
-        {/* Hero Banner Pegawai (Pengganti banner polos) */}
+        {/* Hero Banner Pegawai */}
         <section className="dash-hero-banner">
           <div className="dash-hero-content">
             <div className="dash-hero-headline">
@@ -217,7 +229,7 @@ function UserDashboard() {
             </div>
 
             <div className="dash-hero-kpis">
-              <div className="dash-kpi-card" onClick={() => setActiveTab("aset")}>
+              <div className="dash-kpi-card" onClick={() => navigate("/user/aset")}>
                 <div className="dash-kpi-icon blue">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
@@ -231,7 +243,7 @@ function UserDashboard() {
                 </div>
               </div>
 
-              <div className="dash-kpi-card" onClick={() => setActiveTab("profile")}>
+              <div className="dash-kpi-card" onClick={() => navigate("/user/profile")}>
                 <div className="dash-kpi-icon green">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
@@ -246,12 +258,9 @@ function UserDashboard() {
           </div>
         </section>
 
-        {/* Konten Tab Aktif */}
+        {/* Konten Halaman Aktif via Outlet */}
         <main className="dash-content">
-          {activeTab === "profile" && <ProfileSettings userData={userData} />}
-          {["aset", "peminjaman", "pengembalian"].includes(activeTab) && (
-            <AsetList userData={userData} initialTab={activeTab} key={activeTab} />
-          )}
+          <Outlet context={{ userData }} />
         </main>
       </div>
     </div>

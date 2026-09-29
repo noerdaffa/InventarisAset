@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, useLocation, useOutletContext } from "react-router-dom";
 import api from "../../../api";
 import { formatRupiah, formatTanggal, slugBadge } from "../../../utils/format";
 import "./AsetList.css";
 
-function AsetList({ userData, initialTab = "aset" }) {
+function AsetList({ userData: propUserData, initialTab = "aset" }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const outletCtx = useOutletContext();
+  const userData = propUserData || outletCtx?.userData || JSON.parse(localStorage.getItem("userData") || "null");
   const [asets, setAsets] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,7 +30,19 @@ function AsetList({ userData, initialTab = "aset" }) {
   });
 
   // ─── State Peminjaman ───────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const getTabFromPath = useCallback((pathname) => {
+    if (pathname.includes("/user/peminjaman")) return "peminjaman";
+    if (pathname.includes("/user/pengembalian")) return "pengembalian";
+    if (pathname.includes("/user/aset")) return "aset";
+    return initialTab;
+  }, [initialTab]);
+
+  const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname));
+
+  useEffect(() => {
+    setActiveTab(getTabFromPath(location.pathname));
+  }, [location.pathname, getTabFromPath]);
+
   const [pinjamModal, setPinjamModal] = useState(null); // aset yang dipilih
   const [pinjamForm, setPinjamForm] = useState({ tanggal_pinjam: "", tanggal_rencana_kembali: "", keterangan: "" });
   const [pinjamSaving, setPinjamSaving] = useState(false);
@@ -169,7 +186,12 @@ function AsetList({ userData, initialTab = "aset" }) {
         keterangan: pinjamForm.keterangan || null,
       });
       setPinjamMsg({ text: "Permintaan peminjaman berhasil diajukan! Menunggu persetujuan admin.", type: "success" });
-      setTimeout(() => { setPinjamModal(null); setActiveTab("peminjaman"); fetchRiwayat(); }, 1500);
+      setTimeout(() => {
+        setPinjamModal(null);
+        setActiveTab("peminjaman");
+        navigate("/user/peminjaman");
+        fetchRiwayat();
+      }, 1500);
     } catch (err) {
       setPinjamMsg({ text: err.response?.data?.message || "Gagal mengajukan peminjaman.", type: "error" });
     } finally {
@@ -239,15 +261,32 @@ function AsetList({ userData, initialTab = "aset" }) {
       {/* ── Tab Navigation ── */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, borderBottom: "2px solid #e2e8f0", paddingBottom: 0 }}>
         {[
-          ["aset", "📦 Daftar Aset BMN"],
-          ["peminjaman", "📋 Peminjaman Saya (Aktif)"],
-          ["pengembalian", "🔄 Riwayat Pengembalian"]
-        ].map(([key, lbl]) => (
-          <button key={key} onClick={() => setActiveTab(key)} style={{
-            padding: "8px 20px", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer",
-            border: "none", background: "none", borderBottom: activeTab === key ? "2px solid #0284c7" : "2px solid transparent",
-            color: activeTab === key ? "#0284c7" : "#64748b", marginBottom: -2, transition: "all 0.15s",
-          }}>{lbl}</button>
+          ["aset", "📦 Daftar Aset BMN", "/user/aset"],
+          ["peminjaman", "📋 Peminjaman Saya (Aktif)", "/user/peminjaman"],
+          ["pengembalian", "🔄 Riwayat Pengembalian", "/user/pengembalian"]
+        ].map(([key, lbl, path]) => (
+          <button
+            key={key}
+            onClick={() => {
+              setActiveTab(key);
+              navigate(path);
+            }}
+            style={{
+              padding: "8px 20px",
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+              border: "none",
+              background: "none",
+              borderBottom: activeTab === key ? "2px solid #0284c7" : "2px solid transparent",
+              color: activeTab === key ? "#0284c7" : "#64748b",
+              marginBottom: -2,
+              transition: "all 0.15s",
+            }}
+          >
+            {lbl}
+          </button>
         ))}
       </div>
 

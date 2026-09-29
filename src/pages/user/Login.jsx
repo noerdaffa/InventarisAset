@@ -23,7 +23,7 @@ function UserLogin() {
       const response = await api.post("/user/login", { ...form, nip: form.nip.trim() });
       localStorage.setItem("userData", JSON.stringify(response.data.data));
       setMessage({ text: "Login berhasil. Mengalihkan...", type: "success" });
-      setTimeout(() => navigate("/user/dashboard"), 400);
+      setTimeout(() => navigate("/user/aset"), 400);
     } catch (error) {
       setMessage({
         text: error.response?.data?.message || "NIP atau kata sandi yang Anda masukkan salah.",

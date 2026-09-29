@@ -10,7 +10,9 @@ import Monitoring from "./pages/admin/Monitoring";
 import ExportPdf from "./pages/admin/ExportPdf";
 import UserLogin from "./pages/user/Login";
 import UserRegister from "./pages/user/Register";
-import UserDashboard from "./pages/user/Dashboard";
+import UserLayout from "./pages/user/Dashboard";
+import AsetList from "./pages/user/components/AsetList";
+import ProfileSettings from "./pages/user/components/ProfileSettings";
 
 function App() {
   return (
@@ -18,10 +20,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/user/login" replace />} />
 
+        {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/user/login" element={<UserLogin />} />
-        <Route path="/user/register" element={<UserRegister />} />
-        <Route path="/user/dashboard" element={<UserDashboard />} />
         <Route path="/admin/dashboard" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="import" element={<ImportData />} />
@@ -29,6 +29,25 @@ function App() {
           <Route path="peminjaman" element={<KelolaPeminjaman />} />
           <Route path="monitoring" element={<Monitoring />} />
           <Route path="export" element={<ExportPdf />} />
+        </Route>
+
+        {/* User Auth Routes */}
+        <Route path="/user/login" element={<UserLogin />} />
+        <Route path="/user/register" element={<UserRegister />} />
+
+        {/* Redirect /dashboard atau /user/dashboard ke /user/aset */}
+        <Route path="/dashboard" element={<Navigate to="/user/aset" replace />} />
+        <Route path="/user/dashboard" element={<Navigate to="/user/aset" replace />} />
+        <Route path="/user/dashboard/*" element={<Navigate to="/user/aset" replace />} />
+
+        {/* User Feature Routes */}
+        <Route path="/user" element={<UserLayout />}>
+          <Route index element={<Navigate to="/user/aset" replace />} />
+          <Route path="aset" element={<AsetList initialTab="aset" />} />
+          <Route path="peminjaman" element={<AsetList initialTab="peminjaman" />} />
+          <Route path="pengembalian" element={<AsetList initialTab="pengembalian" />} />
+          <Route path="profile" element={<ProfileSettings />} />
+          <Route path="profil" element={<Navigate to="/user/profile" replace />} />
         </Route>
       </Routes>
     </Router>
