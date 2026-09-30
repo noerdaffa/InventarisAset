@@ -18,19 +18,7 @@ const MENU = [
     )
   },
   { 
-    path: "/admin/dashboard/import", 
-    label: "Import Data", 
-    subtitle: "Unggah Massal BMN",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="17 8 12 3 7 8" />
-        <line x1="12" y1="3" x2="12" y2="15" />
-      </svg>
-    )
-  },
-  { 
-    path: "/admin/dashboard/aset", 
+    path: "/admin/aset", 
     label: "Kelola Data Aset", 
     subtitle: "Inventaris Terpusat",
     icon: (
@@ -42,9 +30,9 @@ const MENU = [
     )
   },
   { 
-    path: "/admin/dashboard/peminjaman", 
+    path: "/admin/peminjaman", 
     label: "Kelola Peminjaman", 
-    subtitle: "Peminjaman & Pengembalian",
+    subtitle: "Permohonan Peminjaman",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -54,7 +42,30 @@ const MENU = [
     )
   },
   { 
-    path: "/admin/dashboard/monitoring", 
+    path: "/admin/pengembalian", 
+    label: "Kelola Pengembalian", 
+    subtitle: "Verifikasi Pengembalian",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="1 4 1 10 7 10" />
+        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+      </svg>
+    )
+  },
+  { 
+    path: "/admin/import", 
+    label: "Import Data", 
+    subtitle: "Unggah Massal BMN",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" />
+        <line x1="12" y1="3" x2="12" y2="15" />
+      </svg>
+    )
+  },
+  { 
+    path: "/admin/monitoring", 
     label: "Monitoring Aset", 
     subtitle: "Lacak Kondisi & Status",
     icon: (
@@ -65,7 +76,7 @@ const MENU = [
     )
   },
   { 
-    path: "/admin/dashboard/export", 
+    path: "/admin/export", 
     label: "Export PDF", 
     subtitle: "Cetak Laporan Resmi",
     icon: (
@@ -81,12 +92,20 @@ const MENU = [
 ];
 
 const PAGE_TITLES = {
+  "/admin": "Beranda Utama",
   "/admin/dashboard": "Beranda Utama",
-  "/admin/dashboard/import": "Import Data BMN",
-  "/admin/dashboard/aset": "Manajemen Aset",
+  "/admin/aset": "Kelola Data Aset",
+  "/admin/peminjaman": "Kelola Peminjaman",
+  "/admin/pengembalian": "Kelola Pengembalian",
+  "/admin/import": "Import Data BMN",
+  "/admin/monitoring": "Monitoring Aset",
+  "/admin/export": "Export Laporan PDF",
+  "/admin/dashboard/aset": "Kelola Data Aset",
   "/admin/dashboard/peminjaman": "Kelola Peminjaman",
-  "/admin/dashboard/monitoring": "Monitoring BMN",
-  "/admin/dashboard/export": "Laporan PDF",
+  "/admin/dashboard/pengembalian": "Kelola Pengembalian",
+  "/admin/dashboard/import": "Import Data BMN",
+  "/admin/dashboard/monitoring": "Monitoring Aset",
+  "/admin/dashboard/export": "Export Laporan PDF",
 };
 
 function AdminLayout() {
@@ -131,7 +150,13 @@ function AdminLayout() {
       {/* Sidebar Navigasi */}
       <aside className={`dash-sidebar ${sidebarOpen ? "" : "collapsed"}`}>
         <div className="dash-sidebar-header">
-          <div className="dash-brand-wrap">
+          <div
+            className="dash-brand-wrap"
+            onClick={() => navigate("/admin/dashboard")}
+            style={{ cursor: "pointer" }}
+            role="button"
+            title="Ke Beranda Utama Admin"
+          >
             <div className="dash-brand-logo">
               <img src="/logo-bmkg.png" alt="Logo BMKG" />
             </div>
@@ -240,8 +265,8 @@ function AdminLayout() {
           </div>
         </header>
 
-        {/* Hero Banner (Hanya tampil di Beranda atau bisa di semua halaman) */}
-        {location.pathname === "/admin/dashboard" && (
+        {/* Hero Banner (Tampil di Beranda Utama Admin) */}
+        {["/admin", "/admin/dashboard"].includes(location.pathname) && (
           <section className="dash-hero-banner">
             <div className="dash-hero-content">
               <div className="dash-hero-headline">
@@ -258,7 +283,7 @@ function AdminLayout() {
               </div>
 
               <div className="dash-hero-kpis">
-                <div className="dash-kpi-card" onClick={() => navigate("/admin/dashboard/aset")}>
+                <div className="dash-kpi-card" onClick={() => navigate("/admin/aset")}>
                   <div className="dash-kpi-icon blue">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
@@ -270,7 +295,7 @@ function AdminLayout() {
                   </div>
                 </div>
 
-                <div className="dash-kpi-card" onClick={() => navigate("/admin/dashboard/export")}>
+                <div className="dash-kpi-card" onClick={() => navigate("/admin/export")}>
                   <div className="dash-kpi-icon" style={{ background: "#fee2e2", color: "#dc2626" }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />

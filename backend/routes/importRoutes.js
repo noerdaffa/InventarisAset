@@ -218,8 +218,8 @@ router.post("/aset", upload.single("file"), async (req, res) => {
       try {
         await promiseDb.query(
           `INSERT INTO aset
-            (import_id, nama_satker, kode_barang, nup, nama_barang, status_bmn, merk, tipe, kondisi, nama, tanggal_perolehan, nilai_perolehan, jumlah_foto)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (import_id, nama_satker, kode_barang, nup, nama_barang, status_bmn, merk, tipe, kondisi, tanggal_perolehan, nilai_perolehan, jumlah_foto)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
             import_id = VALUES(import_id),
             nama_satker = VALUES(nama_satker),
@@ -228,7 +228,6 @@ router.post("/aset", upload.single("file"), async (req, res) => {
             merk = VALUES(merk),
             tipe = VALUES(tipe),
             kondisi = VALUES(kondisi),
-            nama = VALUES(nama),
             tanggal_perolehan = VALUES(tanggal_perolehan),
             nilai_perolehan = VALUES(nilai_perolehan),
             jumlah_foto = VALUES(jumlah_foto)`,
@@ -242,7 +241,6 @@ router.post("/aset", upload.single("file"), async (req, res) => {
             merk || null,
             tipe || null,
             kondisi || null,
-            nama || null,
             tanggal_perolehan,
             nilai_perolehan,
             jumlah_foto,

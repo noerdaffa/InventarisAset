@@ -6,6 +6,20 @@ const promiseDb = db.promisePool;
 // Helper: catat riwayat perubahan aset
 async function catatRiwayat(asetId, adminId, aktivitas, keterangan, dataLama, dataBaru) {
   try {
+    await promiseDb.query(`
+      CREATE TABLE IF NOT EXISTS riwayat_aset (
+        id bigint unsigned NOT NULL AUTO_INCREMENT,
+        aset_id bigint unsigned DEFAULT NULL,
+        admin_id int unsigned DEFAULT NULL,
+        aktivitas varchar(50) DEFAULT NULL,
+        keterangan text DEFAULT NULL,
+        data_lama json DEFAULT NULL,
+        data_baru json DEFAULT NULL,
+        created_at timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     await promiseDb.query(
       `INSERT INTO riwayat_aset (aset_id, admin_id, aktivitas, keterangan, data_lama, data_baru)
        VALUES (?, ?, ?, ?, ?, ?)`,
@@ -19,7 +33,7 @@ async function catatRiwayat(asetId, adminId, aktivitas, keterangan, dataLama, da
       ]
     );
   } catch (e) {
-    console.error("Gagal mencatat riwayat aset:", e.message);
+    console.error("Catat riwayat aset:", e.message);
   }
 }
 
@@ -47,9 +61,9 @@ router.get("/", async (req, res) => {
 
     if (search) {
       where.push(
-        "(nama_barang LIKE ? OR kode_barang LIKE ? OR nama_satker LIKE ? OR merk LIKE ? OR tipe LIKE ? OR nama LIKE ? OR CAST(nup AS CHAR) LIKE ?)"
+        "(nama_barang LIKE ? OR kode_barang LIKE ? OR nama_satker LIKE ? OR merk LIKE ? OR tipe LIKE ? OR CAST(nup AS CHAR) LIKE ?)"
       );
-      for (let i = 0; i < 7; i++) params.push(`%${search}%`);
+      for (let i = 0; i < 6; i++) params.push(`%${search}%`);
     }
     if (kondisi) {
       where.push("kondisi = ?");
@@ -275,45 +289,81 @@ router.post("/", async (req, res) => {
       merk,
       tipe,
       kondisi,
-      nama,
       tanggal_perolehan,
       nilai_perolehan,
       admin_id,
     } = req.body;
 
-    if (!kode_barang || !nup || !nama_barang) {
+    if (!kode_barang || nup === undefined || nup === null || nup === "" || !nama_barang) {
       return res.status(400).json({
         success: false,
         message: "kode_barang, nup, dan nama_barang wajib diisi",
       });
     }
 
+    // Validasi apakah admin_id valid di tabel admin
+    let validAdminId = null;
+    if (admin_id) {
+      const [adminRows] = await promiseDb.query("SELECT id FROM admin WHERE id = ?", [admin_id]);
+      if (adminRows.length > 0) {
+        validAdminId = adminRows[0].id;
+      }
+    }
+
+    const cleanKode = String(kode_barang).trim();
+    const parsedNup = parseInt(nup, 10);
+    if (isNaN(parsedNup)) {
+      return res.status(400).json({
+        success: false,
+        message: "NUP harus berupa angka valid",
+      });
+    }
+
+    // Cek apakah kombinasi kode_barang dan nup sudah ada
+    const [dup] = await promiseDb.query(
+      "SELECT id FROM aset WHERE kode_barang = ? AND nup = ?",
+      [cleanKode, parsedNup]
+    );
+    if (dup.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `Kombinasi kode barang '${cleanKode}' & NUP '${parsedNup}' sudah terdaftar`,
+      });
+    }
+
+    const parsedNilai = parseFloat(nilai_perolehan) || 0;
+
     const [result] = await promiseDb.query(
       `INSERT INTO aset
-        (nama_satker, kode_barang, nup, nama_barang, status_bmn, merk, tipe, kondisi, nama, tanggal_perolehan, nilai_perolehan)
+        (admin_id, nama_satker, kode_barang, nup, nama_barang, status_bmn, merk, tipe, kondisi, tanggal_perolehan, nilai_perolehan)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        nama_satker || null,
-        kode_barang,
-        nup,
-        nama_barang,
-        status_bmn || null,
-        merk || null,
-        tipe || null,
-        kondisi || null,
-        nama || null,
+        validAdminId,
+        nama_satker ? String(nama_satker).trim() : null,
+        cleanKode,
+        parsedNup,
+        String(nama_barang).trim(),
+        status_bmn ? String(status_bmn).trim() : null,
+        merk ? String(merk).trim() : null,
+        tipe ? String(tipe).trim() : null,
+        kondisi ? String(kondisi).trim() : "Baik",
         tanggal_perolehan || null,
-        nilai_perolehan || 0,
+        parsedNilai,
       ]
     );
 
-    await catatRiwayat(result.insertId, admin_id, "TAMBAH", "Aset baru ditambahkan", null, req.body);
+    await catatRiwayat(result.insertId, validAdminId, "TAMBAH", "Aset baru ditambahkan", null, req.body);
 
-    res.status(201).json({ success: true, message: "Aset berhasil ditambahkan", data: { id: result.insertId } });
+    res.status(201).json({
+      success: true,
+      message: "Aset berhasil ditambahkan",
+      data: { id: result.insertId },
+    });
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ success: false, message: "Kombinasi kode barang & NUP sudah ada" });
     }
+    console.error("Gagal menambahkan aset:", err);
     res.status(500).json({ success: false, message: "Gagal menambahkan aset", error: err.message });
   }
 });
@@ -337,40 +387,66 @@ router.put("/:id", async (req, res) => {
       merk,
       tipe,
       kondisi,
-      nama,
       tanggal_perolehan,
       nilai_perolehan,
       admin_id,
     } = req.body;
 
+    const newKode = kode_barang !== undefined ? String(kode_barang).trim() : existing.kode_barang;
+    const newNup = nup !== undefined && nup !== null && nup !== "" ? parseInt(nup, 10) : existing.nup;
+
+    if (newKode && newNup !== null && !isNaN(newNup)) {
+      const [dup] = await promiseDb.query(
+        "SELECT id FROM aset WHERE kode_barang = ? AND nup = ? AND id != ?",
+        [newKode, newNup, id]
+      );
+      if (dup.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: `Kombinasi kode barang '${newKode}' & NUP '${newNup}' sudah digunakan oleh aset lain`,
+        });
+      }
+    }
+
+    let validAdminId = existing.admin_id;
+    if (admin_id) {
+      const [adminRows] = await promiseDb.query("SELECT id FROM admin WHERE id = ?", [admin_id]);
+      if (adminRows.length > 0) {
+        validAdminId = adminRows[0].id;
+      }
+    }
+
+    const parsedNilai = nilai_perolehan !== undefined ? (parseFloat(nilai_perolehan) || 0) : existing.nilai_perolehan;
+
     await promiseDb.query(
       `UPDATE aset SET
-        nama_satker = ?, kode_barang = ?, nup = ?, nama_barang = ?, status_bmn = ?,
-        merk = ?, tipe = ?, kondisi = ?, nama = ?, tanggal_perolehan = ?, nilai_perolehan = ?
+        admin_id = ?, nama_satker = ?, kode_barang = ?, nup = ?, nama_barang = ?, status_bmn = ?,
+        merk = ?, tipe = ?, kondisi = ?, tanggal_perolehan = ?, nilai_perolehan = ?
        WHERE id = ?`,
       [
-        nama_satker ?? existing.nama_satker,
-        kode_barang ?? existing.kode_barang,
-        nup ?? existing.nup,
-        nama_barang ?? existing.nama_barang,
-        status_bmn ?? existing.status_bmn,
-        merk ?? existing.merk,
-        tipe ?? existing.tipe,
-        kondisi ?? existing.kondisi,
-        nama ?? existing.nama,
-        tanggal_perolehan ?? existing.tanggal_perolehan,
-        nilai_perolehan ?? existing.nilai_perolehan,
+        validAdminId,
+        nama_satker !== undefined ? (nama_satker ? String(nama_satker).trim() : null) : existing.nama_satker,
+        newKode,
+        newNup,
+        nama_barang !== undefined ? (nama_barang ? String(nama_barang).trim() : existing.nama_barang) : existing.nama_barang,
+        status_bmn !== undefined ? (status_bmn ? String(status_bmn).trim() : null) : existing.status_bmn,
+        merk !== undefined ? (merk ? String(merk).trim() : null) : existing.merk,
+        tipe !== undefined ? (tipe ? String(tipe).trim() : null) : existing.tipe,
+        kondisi !== undefined ? (kondisi ? String(kondisi).trim() : "Baik") : existing.kondisi,
+        tanggal_perolehan !== undefined ? (tanggal_perolehan || null) : existing.tanggal_perolehan,
+        parsedNilai,
         id,
       ]
     );
 
-    await catatRiwayat(id, admin_id, "EDIT", "Data aset diperbarui", existing, req.body);
+    await catatRiwayat(id, validAdminId, "EDIT", "Data aset diperbarui", existing, req.body);
 
     res.json({ success: true, message: "Aset berhasil diperbarui" });
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ success: false, message: "Kombinasi kode barang & NUP sudah ada" });
     }
+    console.error("Gagal memperbarui aset:", err);
     res.status(500).json({ success: false, message: "Gagal memperbarui aset", error: err.message });
   }
 });

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useOutletContext, useSearchParams } from "react-router-dom";
+import { useOutletContext, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import api from "../../api";
 import { formatRupiah, formatTanggal, slugBadge } from "../../utils/format";
 import "./admin.css";
@@ -13,7 +13,6 @@ const KOSONG = {
   merk: "",
   tipe: "",
   kondisi: "Baik",
-  nama: "",
   tanggal_perolehan: "",
   nilai_perolehan: "",
 };
@@ -42,9 +41,27 @@ const FILTER_LABELS = {
 
 export default function KelolaAset({ initialTab = "aset" }) {
   const { admin } = useOutletContext();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const tabFromUrl = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState(tabFromUrl || initialTab);
+
+  const getTabFromPath = useCallback(
+    (pathname) => {
+      if (pathname.includes("/admin/peminjaman") || pathname.includes("/admin/dashboard/peminjaman")) return "peminjaman";
+      if (pathname.includes("/admin/pengembalian") || pathname.includes("/admin/dashboard/pengembalian")) return "pengembalian";
+      if (pathname.includes("/admin/aset") || pathname.includes("/admin/dashboard/aset")) return "aset";
+      if (tabFromUrl && ["aset", "peminjaman", "pengembalian"].includes(tabFromUrl)) return tabFromUrl;
+      return initialTab || "aset";
+    },
+    [initialTab, tabFromUrl]
+  );
+
+  const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname));
+
+  useEffect(() => {
+    setActiveTab(getTabFromPath(location.pathname));
+  }, [location.pathname, getTabFromPath]);
 
   // ─── Stat Metrics ──────────────────────────────────────────────────────────
   const [ringkasan, setRingkasan] = useState({
@@ -64,10 +81,16 @@ export default function KelolaAset({ initialTab = "aset" }) {
     loadRingkasan();
   }, [loadRingkasan]);
 
-  // Sync activeTab with URL if needed
+  // Sync activeTab with URL
   const handleTabChange = (newTab) => {
     setActiveTab(newTab);
-    setSearchParams({ tab: newTab });
+    if (newTab === "aset") {
+      navigate("/admin/aset");
+    } else if (newTab === "peminjaman") {
+      navigate("/admin/peminjaman");
+    } else if (newTab === "pengembalian") {
+      navigate("/admin/pengembalian");
+    }
   };
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -136,7 +159,9 @@ export default function KelolaAset({ initialTab = "aset" }) {
     e.preventDefault();
     setSavingAset(true);
     setFormAsetError("");
-    const payload = { ...formAset, admin_id: admin?.id };
+    const storedAdmin = JSON.parse(localStorage.getItem("adminData") || "null");
+    const activeAdminId = admin?.id || storedAdmin?.id || null;
+    const payload = { ...formAset, admin_id: activeAdminId };
     try {
       if (editingId) {
         await api.put(`/aset/${editingId}`, payload);
@@ -147,7 +172,7 @@ export default function KelolaAset({ initialTab = "aset" }) {
       loadDataAset(pagination.page);
       loadRingkasan();
     } catch (err) {
-      setFormAsetError(err.response?.data?.message || "Gagal menyimpan data aset");
+      setFormAsetError(err.response?.data?.message || err.response?.data?.error || "Gagal menyimpan data aset");
     } finally {
       setSavingAset(false);
     }

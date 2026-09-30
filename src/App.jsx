@@ -6,6 +6,7 @@ import AdminLayout from "./pages/admin/layout/AdminLayout";
 import ImportData from "./pages/admin/ImportData";
 import KelolaAset from "./pages/admin/KelolaAset";
 import KelolaPeminjaman from "./pages/admin/KelolaPeminjaman";
+import KelolaPengembalian from "./pages/admin/KelolaPengembalian";
 import Monitoring from "./pages/admin/Monitoring";
 import ExportPdf from "./pages/admin/ExportPdf";
 import UserLogin from "./pages/user/Login";
@@ -20,15 +21,27 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/user/login" replace />} />
 
-        {/* Admin Routes */}
+        {/* Admin Auth Route */}
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="import" element={<ImportData />} />
-          <Route path="aset" element={<KelolaAset />} />
+
+        {/* Admin Feature Routes */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="aset" element={<KelolaAset initialTab="aset" />} />
           <Route path="peminjaman" element={<KelolaPeminjaman />} />
+          <Route path="pengembalian" element={<KelolaPengembalian />} />
+          <Route path="import" element={<ImportData />} />
           <Route path="monitoring" element={<Monitoring />} />
           <Route path="export" element={<ExportPdf />} />
+
+          {/* Backward compatibility for legacy /admin/dashboard/* paths */}
+          <Route path="dashboard/aset" element={<Navigate to="/admin/aset" replace />} />
+          <Route path="dashboard/peminjaman" element={<Navigate to="/admin/peminjaman" replace />} />
+          <Route path="dashboard/pengembalian" element={<Navigate to="/admin/pengembalian" replace />} />
+          <Route path="dashboard/import" element={<Navigate to="/admin/import" replace />} />
+          <Route path="dashboard/monitoring" element={<Navigate to="/admin/monitoring" replace />} />
+          <Route path="dashboard/export" element={<Navigate to="/admin/export" replace />} />
         </Route>
 
         {/* User Auth Routes */}
