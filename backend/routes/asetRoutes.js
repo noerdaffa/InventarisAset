@@ -106,6 +106,24 @@ router.get("/", async (req, res) => {
       where.push("nama_satker = ?");
       params.push(nama_satker);
     }
+    if (req.query.bulan) {
+      const b = req.query.bulan;
+      if (b.includes("-")) {
+        const parts = b.split("-");
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        if (!isNaN(y) && !isNaN(m)) {
+          where.push("(MONTH(a.tanggal_perolehan) = ? AND YEAR(a.tanggal_perolehan) = ?)");
+          params.push(m, y);
+        }
+      } else {
+        const m = parseInt(b, 10);
+        if (!isNaN(m)) {
+          where.push("MONTH(a.tanggal_perolehan) = ?");
+          params.push(m);
+        }
+      }
+    }
     if (tanggal_dari) {
       where.push("tanggal_perolehan >= ?");
       params.push(tanggal_dari);

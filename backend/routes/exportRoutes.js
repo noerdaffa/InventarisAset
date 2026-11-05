@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const PDFDocument = require("pdfkit");
+const path = require("path");
+const fs = require("fs");
 const db = require("../db");
 const promiseDb = db.promisePool;
 
@@ -15,20 +17,68 @@ function formatRupiah(n) {
 }
 
 function drawHeader(doc, judul) {
+  const pageWidth = doc.page.width;
+  const startY = 30;
+  const logoPath = path.join(process.cwd(), "public", "logo-bmkg.png");
+
+  // Logo BMKG resmi
+  if (fs.existsSync(logoPath)) {
+    try {
+      doc.image(logoPath, 48, startY, { width: 48 });
+    } catch (e) {
+      console.warn("Gagal merender logo BMKG pada PDF:", e.message);
+    }
+  }
+
+  // Teks Kop Surat Resmi Sesuai Format Kedinasan BMKG di PDF
   doc
-    .fontSize(16)
-    .fillColor("#0a1628")
-    .text("SISTEM INVENTARIS ASET BMKG", { align: "center" })
-    .fontSize(12)
-    .fillColor("#333333")
-    .text(judul, { align: "center" })
-    .moveDown(0.3)
+    .fontSize(14)
+    .font("Helvetica-Bold")
+    .fillColor("#000000")
+    .text("BADAN METEOROLOGI, KLIMATOLOGI, DAN GEOFISIKA", 106, startY + 4, {
+      align: "center",
+      width: pageWidth - 152,
+    })
     .fontSize(9)
+    .font("Helvetica")
+    .fillColor("#111111")
+    .text(
+      "Jl. Angkasa I No. 2, Jakarta 10610 Telp : (021) 4246321 Fax : (021) 4246703",
+      106,
+      startY + 24,
+      { align: "center", width: pageWidth - 152 }
+    )
+    .text(
+      "P. O. BOX 3540 JKT, Website : http://www.bmkg.go.id",
+      106,
+      startY + 38,
+      { align: "center", width: pageWidth - 152 }
+    );
+
+  // Garis Pembatas Kop Surat (Garis horizontal tegas seperti di PDF)
+  const lineY = startY + 68;
+  doc
+    .strokeColor("#000000")
+    .lineWidth(2)
+    .moveTo(40, lineY)
+    .lineTo(pageWidth - 40, lineY)
+    .stroke();
+
+  // Judul Laporan & Waktu Cetak
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(11.5)
+    .fillColor("#0a1628")
+    .text(judul, 40, lineY + 10, { align: "center", width: pageWidth - 80 })
+    .font("Helvetica")
+    .fontSize(8)
     .fillColor("#666666")
-    .text(`Dicetak: ${new Date().toLocaleString("id-ID")}`, { align: "center" })
-    .moveDown(1);
-  doc.strokeColor("#cccccc").moveTo(40, doc.y).lineTo(doc.page.width - 40, doc.y).stroke();
-  doc.moveDown(0.7);
+    .text(`Dicetak: ${new Date().toLocaleString("id-ID")}`, 40, lineY + 26, {
+      align: "center",
+      width: pageWidth - 80,
+    });
+
+  doc.y = lineY + 42;
 }
 
 function drawTable(doc, columns, rows) {
@@ -71,7 +121,7 @@ function drawTable(doc, columns, rows) {
 // GET /api/export/aset/pdf -> export daftar aset (mendukung filter yang sama dgn /api/aset)
 router.get("/aset/pdf", async (req, res) => {
   try {
-    const { search = "", kondisi = "", status_bmn = "", nama_satker = "" } = req.query;
+    const { search = "", kondisi = "", status_bmn = "", nama_satker = "", bulan = "" } = req.query;
     const where = [];
     const params = [];
     if (search) {
@@ -90,6 +140,23 @@ router.get("/aset/pdf", async (req, res) => {
       where.push("nama_satker = ?");
       params.push(nama_satker);
     }
+    if (bulan) {
+      if (bulan.includes("-")) {
+        const parts = bulan.split("-");
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        if (!isNaN(y) && !isNaN(m)) {
+          where.push("(MONTH(tanggal_perolehan) = ? AND YEAR(tanggal_perolehan) = ?)");
+          params.push(m, y);
+        }
+      } else {
+        const m = parseInt(bulan, 10);
+        if (!isNaN(m)) {
+          where.push("MONTH(tanggal_perolehan) = ?");
+          params.push(m);
+        }
+      }
+    }
     const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
     const [rows] = await promiseDb.query(
@@ -103,7 +170,23 @@ router.get("/aset/pdf", async (req, res) => {
     const doc = new PDFDocument({ margin: 40, layout: "landscape", size: "A4" });
     doc.pipe(res);
 
-    drawHeader(doc, `Laporan Data Aset (${rows.length} item)`);
+    const BULAN_NAMES = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    let periodeLabel = "";
+    if (bulan) {
+      if (bulan.includes("-")) {
+        const [y, m] = bulan.split("-");
+        const bName = BULAN_NAMES[parseInt(m, 10) - 1] || m;
+        periodeLabel = `Bulan ${bName} ${y} • `;
+      } else {
+        const bName = BULAN_NAMES[parseInt(bulan, 10) - 1] || bulan;
+        periodeLabel = `Bulan ${bName} • `;
+      }
+    }
+
+    drawHeader(doc, `Laporan Data Aset (${periodeLabel}${rows.length} item)`);
 
     drawTable(
       doc,
