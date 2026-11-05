@@ -102,6 +102,7 @@ export default function KelolaAset({ initialTab = "aset" }) {
   const [filter, setFilter] = useState(FILTER_AWAL);
   const [opsi, setOpsi] = useState({ kondisi: [], status_bmn: [], nama_satker: [] });
   const [loadingAset, setLoadingAset] = useState(true);
+  const [loadAsetError, setLoadAsetError] = useState("");
   const [showFilter, setShowFilter] = useState(false);
 
   // Modal Aset
@@ -120,12 +121,21 @@ export default function KelolaAset({ initialTab = "aset" }) {
   const loadDataAset = useCallback(
     (page = 1) => {
       setLoadingAset(true);
+      setLoadAsetError("");
       api.get("/aset", { params: { search, ...filter, page, limit: 10 } })
         .then((res) => {
-          setRows(res.data.data);
-          setPagination(res.data.pagination);
+          if (res.data?.success && Array.isArray(res.data.data)) {
+            setRows(res.data.data);
+            setPagination(res.data.pagination || { page: 1, totalPages: 1, total: res.data.data.length });
+          } else {
+            setRows([]);
+          }
         })
-        .catch(() => {})
+        .catch((err) => {
+          const msg = err.response?.data?.message || err.message || "Gagal memuat data aset dari server";
+          setLoadAsetError(msg);
+          setRows([]);
+        })
         .finally(() => setLoadingAset(false));
     },
     [search, filter]
@@ -196,8 +206,8 @@ export default function KelolaAset({ initialTab = "aset" }) {
   const [loadingPinjam, setLoadingPinjam] = useState(false);
   const [statusPinjamFilter, setStatusPinjamFilter] = useState("");
   const [searchPinjam, setSearchPinjam] = useState("");
-  const [peminjamanPage, setPeminjamanPage] = useState(1);
-  const [peminjamanPagination, setPeminjamanPagination] = useState({ page: 1, totalPages: 1, total: 0 });
+  const [peminjamanPage] = useState(1);
+  const [, setPeminjamanPagination] = useState({ page: 1, totalPages: 1, total: 0 });
 
   const loadDataPeminjaman = useCallback(() => {
     setLoadingPinjam(true);
@@ -609,6 +619,15 @@ export default function KelolaAset({ initialTab = "aset" }) {
                   <tr>
                     <td colSpan={8} style={{ textAlign: "center", padding: 32 }}>
                       <div className="d-loading"><div className="d-spinner" /><span>Memuat data aset...</span></div>
+                    </td>
+                  </tr>
+                ) : loadAsetError ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: "center", padding: 36, color: "#b91c1c" }}>
+                      <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontWeight: 600 }}>⚠️ {loadAsetError}</span>
+                        <button className="d-btn d-btn-secondary d-btn-sm" onClick={() => loadDataAset(pagination.page)}>Coba Muat Ulang</button>
+                      </div>
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (

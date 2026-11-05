@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
-import "../../user/Dashboard.css"; // Reuse the premium user dashboard styling
+import api from "../../../api";
+import "../admin.css";
 
 const MENU = [
   { 
     path: "/admin/dashboard", 
     label: "Beranda Utama", 
-    subtitle: "Ringkasan & Statistik",
     end: true,
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="7" height="9" />
         <rect x="14" y="3" width="7" height="5" />
         <rect x="14" y="12" width="7" height="9" />
@@ -19,10 +19,9 @@ const MENU = [
   },
   { 
     path: "/admin/aset", 
-    label: "Kelola Data Aset", 
-    subtitle: "Inventaris Terpusat",
+    label: "Master Data Aset", 
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
         <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
         <line x1="12" y1="22.08" x2="12" y2="12" />
@@ -31,10 +30,10 @@ const MENU = [
   },
   { 
     path: "/admin/peminjaman", 
-    label: "Kelola Peminjaman", 
-    subtitle: "Permohonan Peminjaman",
+    label: "Peminjaman", 
+    badgeKey: "peminjaman_menunggu",
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
         <circle cx="8.5" cy="7" r="4" />
         <polyline points="17 11 19 13 23 9" />
@@ -43,10 +42,10 @@ const MENU = [
   },
   { 
     path: "/admin/pengembalian", 
-    label: "Kelola Pengembalian", 
-    subtitle: "Verifikasi Pengembalian",
+    label: "Pengembalian", 
+    badgeKey: "pengembalian_menunggu",
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="1 4 1 10 7 10" />
         <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
       </svg>
@@ -54,10 +53,9 @@ const MENU = [
   },
   { 
     path: "/admin/import", 
-    label: "Import Data", 
-    subtitle: "Unggah Massal BMN",
+    label: "Import Excel", 
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
         <polyline points="17 8 12 3 7 8" />
         <line x1="12" y1="3" x2="12" y2="15" />
@@ -66,10 +64,9 @@ const MENU = [
   },
   { 
     path: "/admin/monitoring", 
-    label: "Monitoring Aset", 
-    subtitle: "Lacak Kondisi & Status",
+    label: "Monitoring & Audit", 
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
         <polyline points="12 6 12 12 16 14" />
       </svg>
@@ -77,10 +74,9 @@ const MENU = [
   },
   { 
     path: "/admin/export", 
-    label: "Export PDF", 
-    subtitle: "Cetak Laporan Resmi",
+    label: "Cetak Laporan PDF", 
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
         <polyline points="14 2 14 8 20 8" />
         <line x1="16" y1="13" x2="8" y2="13" />
@@ -95,14 +91,14 @@ const PAGE_TITLES = {
   "/admin": "Beranda Utama",
   "/admin/dashboard": "Beranda Utama",
   "/admin/aset": "Kelola Data Aset",
-  "/admin/peminjaman": "Kelola Peminjaman",
-  "/admin/pengembalian": "Kelola Pengembalian",
+  "/admin/peminjaman": "Peminjaman",
+  "/admin/pengembalian": "Pengembalian",
   "/admin/import": "Import Data BMN",
   "/admin/monitoring": "Monitoring Aset",
   "/admin/export": "Export Laporan PDF",
   "/admin/dashboard/aset": "Kelola Data Aset",
-  "/admin/dashboard/peminjaman": "Kelola Peminjaman",
-  "/admin/dashboard/pengembalian": "Kelola Pengembalian",
+  "/admin/dashboard/peminjaman": "Peminjaman",
+  "/admin/dashboard/pengembalian": "Pengembalian",
   "/admin/dashboard/import": "Import Data BMN",
   "/admin/dashboard/monitoring": "Monitoring Aset",
   "/admin/dashboard/export": "Export Laporan PDF",
@@ -111,6 +107,10 @@ const PAGE_TITLES = {
 function AdminLayout() {
   const [admin, setAdmin] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [badges, setBadges] = useState({
+    peminjaman_menunggu: 0,
+    pengembalian_menunggu: 0,
+  });
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -123,6 +123,19 @@ function AdminLayout() {
     setAdmin(JSON.parse(adminData));
   }, [navigate]);
 
+  useEffect(() => {
+    api.get("/aset/ringkasan-status")
+      .then((res) => {
+        if (res.data?.data) {
+          setBadges({
+            peminjaman_menunggu: res.data.data.peminjaman_menunggu || 0,
+            pengembalian_menunggu: res.data.data.pengembalian_menunggu || 0,
+          });
+        }
+      })
+      .catch(() => {});
+  }, [location.pathname]);
+
   const handleLogout = () => {
     localStorage.removeItem("adminData");
     navigate("/admin/login");
@@ -131,13 +144,13 @@ function AdminLayout() {
   const formattedDate = useMemo(() => {
     try {
       return new Intl.DateTimeFormat("id-ID", {
-        weekday: "long",
+        weekday: "short",
         day: "numeric",
         month: "short",
         year: "numeric",
       }).format(new Date());
     } catch {
-      return "BMKG Indonesia";
+      return "BMKG";
     }
   }, []);
 
@@ -146,105 +159,104 @@ function AdminLayout() {
   const currentTitle = PAGE_TITLES[location.pathname] || "Dashboard Admin";
 
   return (
-    <div className="dash-shell">
-      {/* Sidebar Navigasi */}
-      <aside className={`dash-sidebar ${sidebarOpen ? "" : "collapsed"}`}>
-        <div className="dash-sidebar-header">
+    <div className="adm-shell">
+      {/* ─── Compact Modern Sidebar ─── */}
+      <aside className={`adm-sidebar ${sidebarOpen ? "" : "collapsed"}`}>
+        <div className="adm-sidebar-brand">
           <div
-            className="dash-brand-wrap"
+            className="adm-brand-link"
             onClick={() => navigate("/admin/dashboard")}
-            style={{ cursor: "pointer" }}
             role="button"
-            title="Ke Beranda Utama Admin"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && navigate("/admin/dashboard")}
+            title="Ke Beranda Utama"
           >
-            <div className="dash-brand-logo">
+            <div className="adm-brand-symbol">
               <img src="/logo-bmkg.png" alt="Logo BMKG" />
             </div>
             {sidebarOpen && (
-              <div className="dash-brand-info">
-                <span className="dash-brand-kicker">BMKG INDONESIA</span>
-                <span className="dash-brand-title">Inventaris BMN</span>
+              <div className="adm-brand-meta">
+                <span className="adm-brand-org">BMKG PUSAT</span>
+                <span className="adm-brand-app">Inventaris BMN</span>
               </div>
             )}
           </div>
-          {sidebarOpen && (
-            <div className="dash-user-badge-role">
-              <span className="dash-pulse-dot" style={{ background: "#f59e0b", boxShadow: "0 0 0 2px #fef3c7" }} aria-hidden="true"></span>
-              <span>Portal Administrator</span>
-            </div>
-          )}
         </div>
 
-        <nav className="dash-nav" aria-label="Menu Utama">
-          <div className="dash-nav-section-label">
-            {sidebarOpen ? "MENU NAVIGASI" : "•••"}
-          </div>
-          {MENU.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.end}
-              className={({ isActive }) => `dash-nav-item ${isActive ? "active" : ""}`}
-              title={item.label}
-            >
-              <span className="dash-nav-icon">{item.icon}</span>
-              {sidebarOpen && (
-                <div className="dash-nav-text">
-                  <span className="dash-nav-title">{item.label}</span>
-                  <span className="dash-nav-sub">{item.subtitle}</span>
-                </div>
-              )}
-            </NavLink>
-          ))}
+        <nav className="adm-nav-menu" aria-label="Navigasi Utama">
+          {sidebarOpen && <div className="adm-nav-group-label">MODUL PENGELOLAAN</div>}
+          {MENU.map((item) => {
+            const badgeCount = item.badgeKey ? badges[item.badgeKey] : 0;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.end}
+                className={({ isActive }) => `adm-nav-anchor ${isActive ? "active" : ""}`}
+                title={item.label}
+              >
+                <span className="adm-nav-ico">{item.icon}</span>
+                {sidebarOpen && (
+                  <>
+                    <span className="adm-nav-name">{item.label}</span>
+                    {badgeCount > 0 && (
+                      <span className="adm-nav-pill" title={`${badgeCount} menunggu verifikasi`}>
+                        {badgeCount}
+                      </span>
+                    )}
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
 
-        <div className="dash-sidebar-footer">
-          <button className="dash-nav-item dash-logout" onClick={handleLogout} title="Keluar dari sistem">
-            <span className="dash-nav-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="adm-sidebar-bottom">
+          <button
+            className="adm-nav-anchor adm-btn-logout"
+            onClick={handleLogout}
+            title="Keluar dari sesi administrator"
+          >
+            <span className="adm-nav-ico">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
             </span>
-            {sidebarOpen && (
-              <div className="dash-nav-text">
-                <span className="dash-nav-title">Keluar Akun</span>
-                <span className="dash-nav-sub">Akhiri sesi admin</span>
-              </div>
-            )}
+            {sidebarOpen && <span className="adm-nav-name">Keluar Sesi</span>}
           </button>
         </div>
       </aside>
 
-      {/* Area Konten Utama */}
-      <div className="dash-main">
-        {/* Top Navbar */}
-        <header className="dash-navbar">
-          <div className="dash-navbar-left">
+      {/* ─── Main Content Canvas ─── */}
+      <div className="adm-main-body">
+        {/* Sleek Top Bar */}
+        <header className="adm-topbar">
+          <div className="adm-topbar-left">
             <button
-              className="dash-toggle-btn"
+              className="adm-icon-btn"
               onClick={() => setSidebarOpen((v) => !v)}
               aria-label="Toggle navigasi sidebar"
-              title={sidebarOpen ? "Sembunyikan sidebar" : "Tampilkan sidebar"}
+              title={sidebarOpen ? "Persempit sidebar" : "Perluas sidebar"}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="3" y1="12" x2="21" y2="12"></line>
                 <line x1="3" y1="6" x2="21" y2="6"></line>
                 <line x1="3" y1="18" x2="21" y2="18"></line>
               </svg>
             </button>
 
-            <div className="dash-breadcrumb">
-              <span className="dash-bc-parent">Administrator</span>
-              <span className="dash-bc-sep">/</span>
-              <span className="dash-bc-current">{currentTitle}</span>
-            </div>
+            <nav className="adm-crumbs" aria-label="Breadcrumb">
+              <span className="adm-crumb-root">Logistik BMN</span>
+              <span className="adm-crumb-sep">/</span>
+              <span className="adm-crumb-target">{currentTitle}</span>
+            </nav>
           </div>
 
-          <div className="dash-navbar-right">
-            <div className="dash-date-badge">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <div className="adm-topbar-right">
+            <div className="adm-calendar-pill">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                 <line x1="16" y1="2" x2="16" y2="6"></line>
                 <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -253,71 +265,21 @@ function AdminLayout() {
               <span>{formattedDate}</span>
             </div>
 
-            <div className="dash-user-chip" role="button" title="Admin Terautentikasi">
-              <div className="dash-user-avatar" style={{ background: "#1e3a8a" }}>
+            <div className="adm-profile-chip">
+              <div className="adm-profile-badge">
                 {admin.name?.[0]?.toUpperCase() || "A"}
               </div>
-              <div className="dash-user-meta">
-                <span className="dash-user-name">{admin.name}</span>
-                <span className="dash-user-nip">Super Admin</span>
+              <div className="adm-profile-meta">
+                <span className="adm-profile-name">{admin.name}</span>
+                <span className="adm-profile-role">Administrator</span>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Hero Banner (Tampil di Beranda Utama Admin) */}
-        {["/admin", "/admin/dashboard"].includes(location.pathname) && (
-          <section className="dash-hero-banner">
-            <div className="dash-hero-content">
-              <div className="dash-hero-headline">
-                <div className="dash-hero-tag" style={{ background: "#fef3c7", color: "#b45309" }}>
-                  <span className="dash-tag-dot" style={{ background: "#f59e0b" }}></span>
-                  <span>Panel Administrator BMN</span>
-                </div>
-                <h1 className="dash-hero-title">
-                  Selamat Bekerja, <span>{admin.name}</span>
-                </h1>
-                <p className="dash-hero-desc">
-                  Kendali penuh atas data inventaris Barang Milik Negara. Pantau statistik aset, kelola pendaftaran barang baru, dan cetak laporan resmi dari satu tempat terpadu.
-                </p>
-              </div>
-
-              <div className="dash-hero-kpis">
-                <div className="dash-kpi-card" onClick={() => navigate("/admin/aset")}>
-                  <div className="dash-kpi-icon blue">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                    </svg>
-                  </div>
-                  <div className="dash-kpi-text">
-                    <span className="dash-kpi-label">Master Data</span>
-                    <strong className="dash-kpi-value">Kelola Aset BMN</strong>
-                  </div>
-                </div>
-
-                <div className="dash-kpi-card" onClick={() => navigate("/admin/export")}>
-                  <div className="dash-kpi-icon" style={{ background: "#fee2e2", color: "#dc2626" }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                      <polyline points="10 9 9 9 8 9" />
-                    </svg>
-                  </div>
-                  <div className="dash-kpi-text">
-                    <span className="dash-kpi-label">Laporan PDF</span>
-                    <strong className="dash-kpi-value">Cetak Dokumen Resmi</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Konten Utama */}
-        <main className="dash-content">
-          <Outlet context={{ admin }} />
+        {/* Content View */}
+        <main className="adm-workspace-content">
+          <Outlet context={{ admin, badges }} />
         </main>
       </div>
     </div>

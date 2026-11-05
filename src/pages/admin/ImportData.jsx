@@ -1,21 +1,50 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
 import api from "../../api";
 import "./admin.css";
 
+const formatBytes = (bytes, decimals = 1) => {
+  if (!bytes) return "0 Bytes";
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+};
+
+const formatRupiah = (value) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(value || 0);
+
 function ImportData() {
   const { admin } = useOutletContext();
+  const navigate = useNavigate();
   const fileRef = useRef(null);
   const [file, setFile] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [riwayat, setRiwayat] = useState([]);
+  const [showErrorList, setShowErrorList] = useState(false);
+
+  // Modal / drawer untuk melihat aset dari batch tertentu
+  const [selectedBatch, setSelectedBatch] = useState(null);
+  const [batchAssets, setBatchAssets] = useState([]);
+  const [loadingBatchAssets, setLoadingBatchAssets] = useState(false);
 
   const loadRiwayat = () => {
     api
       .get("/import/riwayat")
-      .then((res) => setRiwayat(res.data.data))
+      .then((res) => {
+        if (Array.isArray(res.data?.data)) {
+          setRiwayat(res.data.data);
+        }
+      })
       .catch(() => {});
   };
 
@@ -24,46 +53,125 @@ function ImportData() {
   }, []);
 
   const handleFileChange = (e) => {
-    setFile(e.target.files[0] || null);
-    setResult(null);
-    setError("");
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFile(selected);
+      setResult(null);
+      setError("");
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const dropped = e.dataTransfer?.files?.[0];
+    if (dropped) {
+      if (!dropped.name.match(/\.(xlsx|xls|csv)$/i)) {
+        setError("Format berkas tidak didukung. Mohon unggah berkas .xlsx, .xls, atau .csv");
+        return;
+      }
+      setFile(dropped);
+      setResult(null);
+      setError("");
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      setDownloadingTemplate(true);
+      const res = await api.get("/import/template", { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "Template_Import_Aset_BMKG.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError("Gagal mengunduh berkas template. Pastikan server backend sedang berjalan.");
+    } finally {
+      setDownloadingTemplate(false);
+    }
   };
 
   const handleUpload = async () => {
     if (!file) {
-      setError("Pilih file excel terlebih dahulu");
+      setError("Pilih berkas Excel terlebih dahulu sebelum melakukan impor.");
       return;
     }
     setLoading(true);
     setError("");
     setResult(null);
 
+    // Ambil ID admin secara aman untuk mencegah error null
+    let adminId = admin?.id;
+    if (!adminId) {
+      try {
+        const stored = localStorage.getItem("adminData");
+        if (stored) adminId = JSON.parse(stored)?.id;
+      } catch (e) {}
+    }
+
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("admin_id", admin.id);
+    if (adminId) {
+      formData.append("admin_id", adminId);
+    }
 
     try {
       const res = await api.post("/import/aset", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setResult(res.data.data);
+      setResult(res.data?.data);
       setFile(null);
       if (fileRef.current) fileRef.current.value = "";
       loadRiwayat();
+      // Buka otomatis daftar error jika ada baris yang gagal
+      if (res.data?.data?.errors?.length > 0) {
+        setShowErrorList(true);
+      }
     } catch (err) {
-      setError(err.response?.data?.message || "Gagal mengimpor data");
+      const msg = err.response?.data?.message || err.message || "Gagal mengimpor data berkas Excel.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleViewBatchAssets = async (batch) => {
+    setSelectedBatch(batch);
+    setLoadingBatchAssets(true);
+    try {
+      const res = await api.get(`/import/${batch.id}/aset`);
+      setBatchAssets(res.data?.data || []);
+    } catch (err) {
+      alert("Gagal memuat daftar aset batch");
+      setBatchAssets([]);
+    } finally {
+      setLoadingBatchAssets(false);
+    }
+  };
+
   const handleDeleteBatch = async (importId, fileName, totalAset) => {
-    const confirmMsg = `Hapus batch import "${fileName}"?\n\n⚠️ Semua ${totalAset} aset dari batch ini akan dihapus.\n\nTindakan ini tidak dapat dibatalkan.`;
-    
+    const confirmMsg = `Hapus batch import "${fileName}"?\n\n⚠️ Semua ${totalAset || 0} aset dari batch ini akan dihapus dari sistem.\n\nTindakan ini tidak dapat dibatalkan.`;
     if (!window.confirm(confirmMsg)) return;
 
     try {
       await api.delete(`/import/${importId}`);
+      if (result?.import_id === importId) {
+        setResult(null);
+      }
       loadRiwayat();
     } catch (err) {
       alert(err.response?.data?.message || "Gagal menghapus batch import");
@@ -71,90 +179,465 @@ function ImportData() {
   };
 
   return (
-    <div>
-      <div className="d-panel">
-        <div className="d-panel-title">Import Data Aset</div>
-        <p style={{ fontSize: 13, color: "#64748b", marginBottom: 14 }}>
-        </p>
-
-        {error && <div className="d-alert d-alert-error">{error}</div>}
-        {result && (
-          <div className="d-alert d-alert-success">
-            Import selesai: {result.berhasil} berhasil, {
-            
-            result.gagal} gagal dari {result.total} baris.
+    <div className="dash-canvas">
+      {/* ─── Header Halaman Impor ─── */}
+      <header className="dash-view-header">
+        <div className="dash-view-titles">
+          <div className="dash-kicker-tag">
+            <span className="dash-kicker-dot" />
+            <span>SINKRONISASI MASSAL BMN</span>
           </div>
-        )}
-        {result?.errors?.length > 0 && (
-          <div className="d-alert d-alert-info">
-            <strong>Detail baris gagal:</strong>
-            <ul style={{ margin: "6px 0 0 18px" }}>
-              {result.errors.map((e, i) => (
-                <li key={i}>{e}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+          <h1 className="dash-view-title">Import Data Inventaris Aset</h1>
+          <p className="dash-view-desc">
+            Unggah massal data perangkat dan logistik dinas melalui berkas spreadsheet Microsoft Excel (.xlsx / .xls).
+          </p>
+        </div>
 
-        <label
-          className={`d-dropzone ${file ? "has-file" : ""}`}
-          htmlFor="excel-input"
-        >
-          {file ? `${file.name}` : " Klik untuk memilih file .xlsx / .xls, atau seret file ke sini"}
-        </label>
-        <input
-          id="excel-input"
-          ref={fileRef}
-          type="file"
-          accept=".xlsx,.xls"
-          onChange={handleFileChange}
-          style={{ display: "none" }}
-        />
-
-        <div style={{ marginTop: 16 }}>
-          <button className="d-btn d-btn-primary" onClick={handleUpload} disabled={loading}>
-            {loading ? "Mengimpor..." : "Import Data"}
+        <div className="dash-view-actions">
+          <button
+            className="dash-cta-btn dash-cta-secondary"
+            onClick={handleDownloadTemplate}
+            disabled={downloadingTemplate}
+            title="Unduh format tabel Excel resmi untuk diisi"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {downloadingTemplate ? "Menyiapkan..." : "Unduh Template Excel"}
           </button>
+          <button
+            className="dash-cta-btn dash-cta-primary"
+            onClick={() => navigate("/admin/aset")}
+            title="Buka katalog master data aset"
+          >
+            Ke Master Data Aset &rarr;
+          </button>
+        </div>
+      </header>
+
+      {/* ─── Area Unggah Berkas & Panduan ─── */}
+      <div className="dash-layout-split">
+        {/* Kolom Kiri: Dropzone & Form Unggah */}
+        <div className="dash-col-primary">
+          <section className="dash-panel-box">
+            <div className="dash-panel-titlebar">
+              <div>
+                <span className="dash-panel-kicker">UNGGAH BERKAS</span>
+                <h2 className="dash-panel-heading">Pilih Berkas Excel</h2>
+              </div>
+            </div>
+
+            {/* Pesan Kesalahan */}
+            {error && (
+              <div className="adm-action-notice" style={{ background: "#fef2f2", borderColor: "#fecaca", color: "#991b1b", marginBottom: 16 }}>
+                <div className="adm-notice-lead">
+                  <span className="adm-notice-icon" style={{ background: "#fee2e2", color: "#dc2626" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="15" y1="9" x2="9" y2="15"></line>
+                      <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                  </span>
+                  <div className="adm-notice-text">
+                    <strong style={{ color: "#991b1b" }}>Proses Impor Terkendala</strong>
+                    <p style={{ color: "#b91c1c" }}>{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Hasil Ringkasan Impor */}
+            {result && (
+              <div
+                className="adm-action-notice"
+                style={{
+                  background: result.berhasil > 0 ? "#f0fdf4" : "#fffbeb",
+                  borderColor: result.berhasil > 0 ? "#bbf7d0" : "#fde68a",
+                  color: result.berhasil > 0 ? "#166534" : "#92400e",
+                  marginBottom: 16,
+                }}
+              >
+                <div className="adm-notice-lead">
+                  <span
+                    className="adm-notice-icon"
+                    style={{
+                      background: result.berhasil > 0 ? "#dcfce7" : "#fef3c7",
+                      color: result.berhasil > 0 ? "#15803d" : "#d97706",
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                  </span>
+                  <div className="adm-notice-text" style={{ flex: 1 }}>
+                    <strong style={{ color: result.berhasil > 0 ? "#166534" : "#92400e" }}>
+                      {result.berhasil > 0 ? "Impor Berhasil Diproses" : "Perhatian Hasil Impor"}
+                    </strong>
+                    <p style={{ color: result.berhasil > 0 ? "#15803d" : "#b45309" }}>
+                      <strong>{result.berhasil}</strong> aset berhasil masuk ke sistem, {result.gagal} catatan dari total {result.total} baris berkas.
+                    </p>
+                    <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button
+                        className="dash-cta-btn dash-cta-primary"
+                        onClick={() => navigate("/admin/aset")}
+                        style={{ fontSize: 12.5, padding: "6px 14px" }}
+                      >
+                        Buka di Master Data Aset &rarr;
+                      </button>
+                      {result.asets?.length > 0 && (
+                        <button
+                          className="dash-cta-btn dash-cta-secondary"
+                          onClick={() => {
+                            const el = document.getElementById("preview-hasil-impor");
+                            if (el) el.scrollIntoView({ behavior: "smooth" });
+                          }}
+                          style={{ fontSize: 12.5, padding: "6px 14px" }}
+                        >
+                          Lihat Daftar Aset di Bawah &darr;
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Rincian Baris Gagal */}
+            {result?.errors?.length > 0 && (
+              <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 14, marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <strong style={{ fontSize: 13, color: "#92400e" }}>
+                    Terdapat {result.errors.length} catatan penyesuaian pada baris data:
+                  </strong>
+                  <button
+                    onClick={() => setShowErrorList((v) => !v)}
+                    className="dash-link-action"
+                    style={{ fontSize: 12 }}
+                  >
+                    {showErrorList ? "Sembunyikan Rincian" : "Tampilkan Rincian"}
+                  </button>
+                </div>
+                {showErrorList && (
+                  <ul style={{ margin: "10px 0 0 18px", fontSize: 12, color: "#b45309", maxHeight: 180, overflowY: "auto" }}>
+                    {result.errors.map((e, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>{e}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* Interaktif Dropzone */}
+            <div
+              className={`dash-dropzone-box ${isDragging ? "dragging" : ""} ${file ? "has-file" : ""}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && fileRef.current?.click()}
+            >
+              <input
+                id="excel-input"
+                ref={fileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleFileChange}
+                style={{ display: "none" }}
+              />
+
+              <div className="dash-dropzone-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="12" y1="18" x2="12" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
+                </svg>
+              </div>
+
+              {file ? (
+                <div className="dash-file-preview">
+                  <strong className="dash-file-name">{file.name}</strong>
+                  <span className="dash-file-size">Ukuran: {formatBytes(file.size)}</span>
+                  <span className="dash-file-change">Klik atau seret untuk mengganti berkas</span>
+                </div>
+              ) : (
+                <div className="dash-dropzone-prompt">
+                  <strong>Seret &amp; lepas berkas Excel di sini, atau klik untuk memilih</strong>
+                  <span>Mendukung format .xlsx, .xls, atau .csv (Maksimal 20 MB)</span>
+                </div>
+              )}
+            </div>
+
+            {/* Tombol Aksi Impor */}
+            <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 12 }}>
+              <button
+                className="dash-cta-btn dash-cta-primary"
+                onClick={handleUpload}
+                disabled={loading || !file}
+                style={{ opacity: loading || !file ? 0.6 : 1, minWidth: 160, justifyContent: "center" }}
+              >
+                {loading ? (
+                  <>
+                    <span className="adm-loader-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                    Memproses Data...
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    Mulai Impor Aset
+                  </>
+                )}
+              </button>
+
+              {file && !loading && (
+                <button
+                  className="dash-cta-btn dash-cta-secondary"
+                  onClick={() => {
+                    setFile(null);
+                    if (fileRef.current) fileRef.current.value = "";
+                  }}
+                >
+                  Batal
+                </button>
+              )}
+            </div>
+          </section>
+        </div>
+
+        {/* Kolom Kanan: Panduan Kolom Standar BMKG */}
+        <div className="dash-col-secondary">
+          <section className="dash-panel-box">
+            <div className="dash-panel-titlebar">
+              <div>
+                <span className="dash-panel-kicker">FORMAT DATA</span>
+                <h2 className="dash-panel-heading">Format Kolom Spreadsheet</h2>
+              </div>
+            </div>
+
+            <p style={{ margin: "0 0 14px 0", fontSize: 13, color: "#64748b", lineHeight: 1.5 }}>
+              Sistem toleran dan otomatis memetakan kolom berdasarkan variasi nama judul di lembar Excel Anda:
+            </p>
+
+            <div className="dash-column-guide-list">
+              <div className="dash-col-guide-item">
+                <span className="dash-col-pill required">Fleksibel</span>
+                <div className="dash-col-desc">
+                  <strong>Kode Barang</strong>
+                  <small>Kodefikasi BMN (otomatis dibuat format BMN jika di berkas tidak ada)</small>
+                </div>
+              </div>
+
+              <div className="dash-col-guide-item">
+                <span className="dash-col-pill required">Disarankan</span>
+                <div className="dash-col-desc">
+                  <strong>Nama Barang / Alat</strong>
+                  <small>Nama atau uraian perangkat dinas (contoh: AWS, Barometer, Genset)</small>
+                </div>
+              </div>
+
+              <div className="dash-col-guide-item">
+                <span className="dash-col-pill optional">Opsional</span>
+                <div className="dash-col-desc">
+                  <strong>NUP</strong>
+                  <small>Nomor urut pendaftaran (otomatis berurutan &amp; dicegah duplikat)</small>
+                </div>
+              </div>
+
+              <div className="dash-col-guide-item">
+                <span className="dash-col-pill optional">Opsional</span>
+                <div className="dash-col-desc">
+                  <strong>Nama Satker</strong>
+                  <small>Stasiun / unit kerja penempatan aset (default: BMKG Pusat)</small>
+                </div>
+              </div>
+
+              <div className="dash-col-guide-item">
+                <span className="dash-col-pill optional">Opsional</span>
+                <div className="dash-col-desc">
+                  <strong>Merk &amp; Tipe</strong>
+                  <small>Pabrikan dan model perangkat operasional</small>
+                </div>
+              </div>
+
+              <div className="dash-col-guide-item">
+                <span className="dash-col-pill optional">Opsional</span>
+                <div className="dash-col-desc">
+                  <strong>Kondisi</strong>
+                  <small>Baik, Rusak Ringan, atau Rusak Berat (default: Baik)</small>
+                </div>
+              </div>
+
+              <div className="dash-col-guide-item">
+                <span className="dash-col-pill optional">Opsional</span>
+                <div className="dash-col-desc">
+                  <strong>Nilai Perolehan</strong>
+                  <small>Harga pembelian / perolehan dalam Rupiah</small>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
 
-      <div className="d-panel">
-        <div className="d-panel-title">Riwayat Import</div>
-        {riwayat.length === 0 ? (
-          <div className="d-empty">Belum ada riwayat import.</div>
-        ) : (
-          <div className="d-table-wrap">
-            <table className="d-table">
+      {/* ─── Pratinjau Langsung Aset yang Baru Saja Diimpor ─── */}
+      {result?.asets?.length > 0 && (
+        <section id="preview-hasil-impor" className="dash-panel-box" style={{ marginTop: 22 }}>
+          <div className="dash-panel-titlebar">
+            <div>
+              <span className="dash-panel-kicker">DATA AKTIF</span>
+              <h2 className="dash-panel-heading">
+                Pratinjau Aset Berhasil Diimpor ({result.asets.length} Unit)
+              </h2>
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                className="dash-cta-btn dash-cta-primary"
+                onClick={() => navigate("/admin/aset")}
+              >
+                Buka di Master Data Aset &rarr;
+              </button>
+            </div>
+          </div>
+
+          <p style={{ margin: "0 0 14px 0", fontSize: 13, color: "#64748b" }}>
+            Data di bawah ini telah berhasil tersimpan di basis data dan siap digunakan untuk peminjaman dinas atau audit:
+          </p>
+
+          <div className="dash-table-container">
+            <table className="dash-compact-table">
               <thead>
                 <tr>
-                  <th>Nama File</th>
-                  <th>Total</th>
+                  <th style={{ width: 44, textAlign: "center" }}>No</th>
+                  <th>Kodefikasi BMN</th>
+                  <th>Nama Barang</th>
+                  <th>Satuan Kerja</th>
+                  <th>Kondisi</th>
+                  <th style={{ textAlign: "right" }}>Nilai Perolehan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.asets.slice(0, 50).map((item, idx) => (
+                  <tr key={item.id || idx}>
+                    <td style={{ textAlign: "center", color: "#94a3b8" }}>{idx + 1}</td>
+                    <td>
+                      <span style={{ fontFamily: "monospace", color: "#0284c7", fontWeight: 700, background: "#f0f9ff", padding: "2px 6px", borderRadius: 4 }}>
+                        {item.kode_barang}
+                      </span>
+                      {item.nup && <span style={{ marginLeft: 6, fontSize: 11, color: "#64748b" }}>NUP {item.nup}</span>}
+                    </td>
+                    <td>
+                      <strong style={{ color: "#0f172a" }}>{item.nama_barang}</strong>
+                      {(item.merk || item.tipe) && (
+                        <div style={{ fontSize: 12, color: "#64748b" }}>
+                          {[item.merk, item.tipe].filter(Boolean).join(" - ")}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ color: "#334155" }}>{item.nama_satker}</td>
+                    <td>
+                      <span className="dash-status-pill pill-ready">
+                        {item.kondisi || "Baik"}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: "right", fontFamily: "monospace", fontWeight: 600, color: "#0f172a" }}>
+                      {formatRupiah(item.nilai_perolehan)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {result.asets.length > 50 && (
+              <p style={{ textAlign: "center", fontSize: 12, color: "#64748b", margin: "14px 0 0" }}>
+                Menampilkan 50 aset pertama dari total {result.asets.length} aset. Seluruh data selengkapnya dapat dikelola melalui Master Data Aset.
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ─── Tabel Riwayat Batch Impor ─── */}
+      <section className="dash-panel-box" style={{ marginTop: 22 }}>
+        <div className="dash-panel-titlebar">
+          <div>
+            <span className="dash-panel-kicker">CATATAN RIWAYAT</span>
+            <h2 className="dash-panel-heading">Riwayat Batch Impor</h2>
+          </div>
+          <button className="dash-link-action" onClick={loadRiwayat}>
+            Muat Ulang Riwayat &rarr;
+          </button>
+        </div>
+
+        {riwayat.length === 0 ? (
+          <div className="dash-state-pad">
+            Belum ada riwayat berkas impor yang tercatat di sistem.
+          </div>
+        ) : (
+          <div className="dash-table-container">
+            <table className="dash-compact-table">
+              <thead>
+                <tr>
+                  <th>Nama Berkas</th>
+                  <th>Total Baris</th>
                   <th>Berhasil</th>
                   <th>Gagal</th>
-                  <th>Admin</th>
-                  <th>Waktu</th>
-                  <th style={{ width: 100 }}>Aksi</th>
+                  <th>Otorisator</th>
+                  <th>Waktu Impor</th>
+                  <th style={{ width: 190, textAlign: "center" }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {riwayat.map((r) => (
                   <tr key={r.id}>
-                    <td>{r.nama_file}</td>
+                    <td>
+                      <strong style={{ color: "#0f172a" }}>{r.nama_file}</strong>
+                    </td>
                     <td>{r.jumlah_data}</td>
-                    <td>{r.jumlah_berhasil}</td>
-                    <td>{r.jumlah_gagal}</td>
-                    <td>{r.admin_name || "-"}</td>
-                    <td>{new Date(r.imported_at).toLocaleString("id-ID")}</td>
+                    <td>
+                      <span className="dash-status-pill pill-ready">{r.jumlah_berhasil}</span>
+                    </td>
+                    <td>
+                      {r.jumlah_gagal > 0 ? (
+                        <span className="dash-status-pill pill-alert">{r.jumlah_gagal}</span>
+                      ) : (
+                        <span className="dash-status-pill pill-muted">0</span>
+                      )}
+                    </td>
+                    <td>{r.admin_name || "Admin"}</td>
+                    <td className="dash-cell-date">
+                      {new Date(r.imported_at).toLocaleString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
                     <td style={{ textAlign: "center" }}>
-                      <button
-                        className="d-btn d-btn-danger d-btn-sm"
-                        onClick={() =>
-                          handleDeleteBatch(r.id, r.nama_file, r.jumlah_berhasil)
-                        }
-                        title="Hapus seluruh batch import"
-                      >
-                        Hapus
-                      </button>
+                      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+                        <button
+                          className="d-btn d-btn-secondary d-btn-sm"
+                          onClick={() => handleViewBatchAssets(r)}
+                          title="Lihat daftar aset dari batch ini"
+                        >
+                          Lihat Aset ({r.jumlah_berhasil})
+                        </button>
+                        <button
+                          className="d-btn d-btn-danger d-btn-sm"
+                          onClick={() => handleDeleteBatch(r.id, r.nama_file, r.jumlah_berhasil)}
+                          title="Hapus seluruh batch aset dari berkas ini"
+                        >
+                          Hapus
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -162,7 +645,96 @@ function ImportData() {
             </table>
           </div>
         )}
-      </div>
+      </section>
+
+      {/* ─── Modal Rincian Aset Per Batch ─── */}
+      {selectedBatch && (
+        <div className="d-modal-overlay" onClick={() => setSelectedBatch(null)}>
+          <div className="d-modal" style={{ maxWidth: 840 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+              <div>
+                <span className="dash-panel-kicker">BATCH #{selectedBatch.id}</span>
+                <h3 style={{ margin: "2px 0 0", fontSize: 17, color: "#0f172a" }}>
+                  {selectedBatch.nama_file}
+                </h3>
+                <small style={{ color: "#64748b" }}>
+                  Waktu Impor: {new Date(selectedBatch.imported_at).toLocaleString("id-ID")} &bull; Total Berhasil: {selectedBatch.jumlah_berhasil} Aset
+                </small>
+              </div>
+              <button
+                onClick={() => setSelectedBatch(null)}
+                style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "#64748b", lineHeight: 1 }}
+              >
+                &times;
+              </button>
+            </div>
+
+            {loadingBatchAssets ? (
+              <div className="dash-state-pad">Memuat daftar aset...</div>
+            ) : batchAssets.length === 0 ? (
+              <div className="dash-state-pad">Tidak ada aset tercatat pada batch ini (kemungkinan sudah dihapus atau diperbarui).</div>
+            ) : (
+              <div className="dash-table-container" style={{ maxHeight: 380, overflowY: "auto" }}>
+                <table className="dash-compact-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 40, textAlign: "center" }}>No</th>
+                      <th>Kodefikasi BMN &amp; NUP</th>
+                      <th>Nama Barang</th>
+                      <th>Satuan Kerja</th>
+                      <th>Kondisi</th>
+                      <th style={{ textAlign: "right" }}>Nilai Perolehan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {batchAssets.map((a, idx) => (
+                      <tr key={a.id}>
+                        <td style={{ textAlign: "center", color: "#94a3b8" }}>{idx + 1}</td>
+                        <td>
+                          <span style={{ fontFamily: "monospace", color: "#0284c7", fontWeight: 700 }}>
+                            {a.kode_barang}
+                          </span>
+                          <span style={{ marginLeft: 6, fontSize: 11, color: "#64748b" }}>NUP {a.nup}</span>
+                        </td>
+                        <td>
+                          <strong style={{ color: "#0f172a" }}>{a.nama_barang}</strong>
+                          {(a.merk || a.tipe) && (
+                            <div style={{ fontSize: 11, color: "#64748b" }}>
+                              {[a.merk, a.tipe].filter(Boolean).join(" - ")}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ color: "#334155" }}>{a.nama_satker || "—"}</td>
+                        <td>
+                          <span className="dash-status-pill pill-ready">{a.kondisi || "Baik"}</span>
+                        </td>
+                        <td style={{ textAlign: "right", fontFamily: "monospace", fontWeight: 600 }}>
+                          {formatRupiah(a.nilai_perolehan)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button className="dash-cta-btn dash-cta-secondary" onClick={() => setSelectedBatch(null)}>
+                Tutup
+              </button>
+              <button
+                className="dash-cta-btn dash-cta-primary"
+                onClick={() => {
+                  setSelectedBatch(null);
+                  navigate("/admin/aset");
+                }}
+              >
+                Buka di Master Data Aset &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

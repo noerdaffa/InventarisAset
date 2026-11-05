@@ -19,6 +19,7 @@
 .env.production.local
 .agents/
 .claude/
+.agent/
 agent/
 skills-lock.json
 npm-debug.log*

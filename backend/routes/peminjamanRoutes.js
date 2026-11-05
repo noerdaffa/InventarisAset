@@ -3,6 +3,40 @@ const router = express.Router();
 const db = require("../db");
 const promiseDb = db.promisePool;
 
+// Self-healing schema: pastikan tabel detail_peminjaman dan kolom pendukung siap
+let isPeminjamanSchemaReady = false;
+async function ensurePeminjamanSchema() {
+  if (isPeminjamanSchemaReady) return;
+  try {
+    await promiseDb.query(`
+      CREATE TABLE IF NOT EXISTS detail_peminjaman (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        peminjaman_id INT UNSIGNED NOT NULL,
+        aset_id INT UNSIGNED NOT NULL,
+        kondisi_saat_pinjam VARCHAR(50) DEFAULT 'Baik',
+        kondisi_saat_kembali VARCHAR(50) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    const [cols] = await promiseDb.query("SHOW COLUMNS FROM peminjaman LIKE 'tanggal_rencana_kembali'");
+    if (!cols.length) {
+      try {
+        await promiseDb.query("ALTER TABLE peminjaman ADD COLUMN tanggal_rencana_kembali DATE NULL AFTER tanggal_pinjam");
+      } catch (e) {}
+    }
+    isPeminjamanSchemaReady = true;
+  } catch (err) {
+    console.warn("Pemberitahuan schema peminjaman:", err.message);
+  }
+}
+
+// Middleware pelindung schema
+router.use(async (req, res, next) => {
+  await ensurePeminjamanSchema();
+  next();
+});
+
 // Helper: catat riwayat aset
 async function catatRiwayatAset(conn, asetId, adminId, aktivitas, keterangan, dataLama, dataBaru) {
   try {

@@ -37,8 +37,37 @@ async function catatRiwayat(asetId, adminId, aktivitas, keterangan, dataLama, da
   }
 }
 
+// Self-healing schema: pastikan tabel detail_peminjaman dan kolom pendukung siap
+let isPeminjamanSchemaReady = false;
+async function ensurePeminjamanSchema() {
+  if (isPeminjamanSchemaReady) return;
+  try {
+    await promiseDb.query(`
+      CREATE TABLE IF NOT EXISTS detail_peminjaman (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        peminjaman_id INT UNSIGNED NOT NULL,
+        aset_id INT UNSIGNED NOT NULL,
+        kondisi_saat_pinjam VARCHAR(50) DEFAULT 'Baik',
+        kondisi_saat_kembali VARCHAR(50) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    const [cols] = await promiseDb.query("SHOW COLUMNS FROM peminjaman LIKE 'tanggal_rencana_kembali'");
+    if (!cols.length) {
+      try {
+        await promiseDb.query("ALTER TABLE peminjaman ADD COLUMN tanggal_rencana_kembali DATE NULL AFTER tanggal_pinjam");
+      } catch (e) {}
+    }
+    isPeminjamanSchemaReady = true;
+  } catch (err) {
+    console.warn("Pemberitahuan schema peminjaman:", err.message);
+  }
+}
+
 // GET /api/aset -> list + pencarian + filter + pagination
 router.get("/", async (req, res) => {
+  await ensurePeminjamanSchema();
   try {
     const {
       search = "",
@@ -92,6 +121,15 @@ router.get("/", async (req, res) => {
     if (nilai_max) {
       where.push("nilai_perolehan <= ?");
       params.push(nilai_max);
+    }
+        if (req.query.import_id) {
+      try {
+        const [cols] = await promiseDb.query("SHOW COLUMNS FROM aset LIKE 'import_id'");
+        if (cols && cols.length > 0) {
+          where.push("a.import_id = ?");
+          params.push(req.query.import_id);
+        }
+      } catch (e) {}
     }
     if (ketersediaan === "tersedia") {
       where.push(
@@ -175,15 +213,33 @@ router.get("/", async (req, res) => {
       ) AS pinjam_tanggal_kembali
     `;
 
-    const [rows] = await promiseDb.query(
-      `SELECT ${selectFields} FROM aset a ${whereSql} ORDER BY a.${sortColumn} ${sortDirection} LIMIT ? OFFSET ?`,
-      [...params, limitNum, offset]
-    );
+    let rows = [];
+    let total = 0;
 
-    const [countRows] = await promiseDb.query(
-      `SELECT COUNT(*) AS total FROM aset a ${whereSql}`,
-      params
-    );
+    try {
+      const [resultRows] = await promiseDb.query(
+        `SELECT ${selectFields} FROM aset a ${whereSql} ORDER BY a.${sortColumn} ${sortDirection} LIMIT ? OFFSET ?`,
+        [...params, limitNum, offset]
+      );
+      const [countRows] = await promiseDb.query(
+        `SELECT COUNT(*) AS total FROM aset a ${whereSql}`,
+        params
+      );
+      rows = resultRows;
+      total = countRows[0]?.total || 0;
+    } catch (errSubquery) {
+      console.warn("Subquery aset gagal, beralih ke query langsung:", errSubquery.message);
+      const [fallbackRows] = await promiseDb.query(
+        `SELECT a.* FROM aset a ${whereSql} ORDER BY a.${sortColumn} ${sortDirection} LIMIT ? OFFSET ?`,
+        [...params, limitNum, offset]
+      );
+      const [countRows] = await promiseDb.query(
+        `SELECT COUNT(*) AS total FROM aset a ${whereSql}`,
+        params
+      );
+      rows = fallbackRows;
+      total = countRows[0]?.total || 0;
+    }
 
     res.json({
       success: true,
@@ -191,8 +247,8 @@ router.get("/", async (req, res) => {
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total: countRows[0].total,
-        totalPages: Math.ceil(countRows[0].total / limitNum) || 1,
+        total,
+        totalPages: Math.ceil(total / limitNum) || 1,
       },
     });
   } catch (err) {
@@ -202,26 +258,51 @@ router.get("/", async (req, res) => {
 
 // GET /api/aset/ringkasan-status -> ringkasan statistik aset & peminjaman
 router.get("/ringkasan-status", async (req, res) => {
+  await ensurePeminjamanSchema();
   try {
-    const [[{ total_aset }]] = await promiseDb.query("SELECT COUNT(*) AS total_aset FROM aset");
-    const [[{ aset_dipinjam }]] = await promiseDb.query(
-      `SELECT COUNT(DISTINCT dp.aset_id) AS aset_dipinjam
-       FROM detail_peminjaman dp
-       JOIN peminjaman p ON dp.peminjaman_id = p.id
-       WHERE p.status IN ('DIPINJAM', 'MENUNGGU_PENGEMBALIAN')`
-    );
-    const [[{ peminjaman_menunggu }]] = await promiseDb.query(
-      "SELECT COUNT(*) AS peminjaman_menunggu FROM peminjaman WHERE status = 'MENUNGGU'"
-    );
-    const [[{ pengembalian_menunggu }]] = await promiseDb.query(
-      "SELECT COUNT(*) AS pengembalian_menunggu FROM peminjaman WHERE status = 'MENUNGGU_PENGEMBALIAN'"
-    );
-    const [[{ pengembalian_selesai }]] = await promiseDb.query(
-      "SELECT COUNT(*) AS pengembalian_selesai FROM peminjaman WHERE status = 'DIKEMBALIKAN'"
-    );
+    const [[totalAsetRow]] = await promiseDb.query("SELECT COUNT(*) AS total_aset FROM aset");
+    const total = totalAsetRow?.total_aset || 0;
 
-    const total = total_aset || 0;
-    const dipinjam = aset_dipinjam || 0;
+    let dipinjam = 0;
+    try {
+      const [[resDipinjam]] = await promiseDb.query(
+        `SELECT COUNT(DISTINCT dp.aset_id) AS aset_dipinjam
+         FROM detail_peminjaman dp
+         JOIN peminjaman p ON dp.peminjaman_id = p.id
+         WHERE p.status IN ('DIPINJAM', 'MENUNGGU_PENGEMBALIAN')`
+      );
+      dipinjam = resDipinjam?.aset_dipinjam || 0;
+    } catch (e) {
+      try {
+        const [[resDipinjamDirect]] = await promiseDb.query(
+          `SELECT COUNT(DISTINCT aset_id) AS aset_dipinjam
+           FROM peminjaman
+           WHERE aset_id IS NOT NULL AND status IN ('DIPINJAM', 'MENUNGGU_PENGEMBALIAN')`
+        );
+        dipinjam = resDipinjamDirect?.aset_dipinjam || 0;
+      } catch (e2) {}
+    }
+
+    let peminjaman_menunggu = 0;
+    let pengembalian_menunggu = 0;
+    let pengembalian_selesai = 0;
+
+    try {
+      const [[pMenunggu]] = await promiseDb.query(
+        "SELECT COUNT(*) AS total FROM peminjaman WHERE status = 'MENUNGGU'"
+      );
+      peminjaman_menunggu = pMenunggu?.total || 0;
+
+      const [[pKembali]] = await promiseDb.query(
+        "SELECT COUNT(*) AS total FROM peminjaman WHERE status = 'MENUNGGU_PENGEMBALIAN'"
+      );
+      pengembalian_menunggu = pKembali?.total || 0;
+
+      const [[pSelesai]] = await promiseDb.query(
+        "SELECT COUNT(*) AS total FROM peminjaman WHERE status = 'DIKEMBALIKAN'"
+      );
+      pengembalian_selesai = pSelesai?.total || 0;
+    } catch (e) {}
 
     res.json({
       success: true,
@@ -229,9 +310,9 @@ router.get("/ringkasan-status", async (req, res) => {
         total_aset: total,
         aset_tersedia: Math.max(total - dipinjam, 0),
         aset_dipinjam: dipinjam,
-        peminjaman_menunggu: peminjaman_menunggu || 0,
-        pengembalian_menunggu: pengembalian_menunggu || 0,
-        pengembalian_selesai: pengembalian_selesai || 0,
+        peminjaman_menunggu,
+        pengembalian_menunggu,
+        pengembalian_selesai,
       },
     });
   } catch (err) {
