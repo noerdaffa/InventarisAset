@@ -26,7 +26,6 @@ function ImportData() {
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [riwayat, setRiwayat] = useState([]);
@@ -83,25 +82,6 @@ function ImportData() {
       setFile(dropped);
       setResult(null);
       setError("");
-    }
-  };
-
-  const handleDownloadTemplate = async () => {
-    try {
-      setDownloadingTemplate(true);
-      const res = await api.get("/import/template", { responseType: "blob" });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "Template_Import_Aset_BMKG.xlsx");
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      setError("Gagal mengunduh berkas template. Pastikan server backend sedang berjalan.");
-    } finally {
-      setDownloadingTemplate(false);
     }
   };
 
@@ -183,310 +163,259 @@ function ImportData() {
       {/* ─── Header Halaman Impor ─── */}
       <header className="dash-view-header">
         <div className="dash-view-titles">
-          <div className="dash-kicker-tag">
-            <span className="dash-kicker-dot" />
-            <span>SINKRONISASI MASSAL BMN</span>
-          </div>
-          <h1 className="dash-view-title">Import Data Inventaris Aset</h1>
+          <h1 className="dash-view-title">Import Data Aset</h1>
           <p className="dash-view-desc">
-            Unggah massal data perangkat dan logistik dinas melalui berkas spreadsheet Microsoft Excel (.xlsx / .xls).
+            Unggah data aset barang milik negara melalui file spreadsheet Microsoft Excel (.xlsx / .xls).
           </p>
-        </div>
-
-        <div className="dash-view-actions">
-          <button
-            className="dash-cta-btn dash-cta-secondary"
-            onClick={handleDownloadTemplate}
-            disabled={downloadingTemplate}
-            title="Unduh format tabel Excel resmi untuk diisi"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            {downloadingTemplate ? "Menyiapkan..." : "Unduh Template Excel"}
-          </button>
-          <button
-            className="dash-cta-btn dash-cta-primary"
-            onClick={() => navigate("/admin/aset")}
-            title="Buka katalog master data aset"
-          >
-            Ke Master Data Aset &rarr;
-          </button>
         </div>
       </header>
 
-      {/* ─── Area Unggah Berkas & Panduan ─── */}
-      <div className="dash-layout-split">
-        {/* Kolom Kiri: Dropzone & Form Unggah */}
-        <div className="dash-col-primary">
-          <section className="dash-panel-box">
-            <div className="dash-panel-titlebar">
-              <div>
-                <span className="dash-panel-kicker">UNGGAH BERKAS</span>
-                <h2 className="dash-panel-heading">Pilih Berkas Excel</h2>
+      {/* ─── Area Unggah Berkas (Rata Kanan-Kiri & Simetris) ─── */}
+      <section className="dash-panel-box">
+        <div className="dash-panel-titlebar" style={{ marginBottom: 20 }}>
+          <div>
+            <h2 className="dash-panel-heading" style={{ margin: "2px 0 0" }}>Pilih Berkas Excel</h2>
+          </div>
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: "#0369a1",
+              background: "#f0f9ff",
+              border: "1px solid #bae6fd",
+              padding: "5px 12px",
+              borderRadius: 6,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Maksimal 20 MB &bull; Format .xlsx, .xls, .csv
+          </span>
+        </div>
+
+        {error && (
+          <div className="adm-action-notice" style={{ background: "#fef2f2", borderColor: "#fecaca", color: "#991b1b", marginBottom: 18 }}>
+            <div className="adm-notice-lead">
+              <span className="adm-notice-icon" style={{ background: "#fee2e2", color: "#dc2626" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              </span>
+              <div className="adm-notice-text">
+                <strong style={{ color: "#991b1b" }}>Proses Import Terkendala</strong>
+                <p style={{ color: "#b91c1c" }}>{error}</p>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Pesan Kesalahan */}
-            {error && (
-              <div className="adm-action-notice" style={{ background: "#fef2f2", borderColor: "#fecaca", color: "#991b1b", marginBottom: 16 }}>
-                <div className="adm-notice-lead">
-                  <span className="adm-notice-icon" style={{ background: "#fee2e2", color: "#dc2626" }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="15" y1="9" x2="9" y2="15"></line>
-                      <line x1="9" y1="9" x2="15" y2="15"></line>
-                    </svg>
-                  </span>
-                  <div className="adm-notice-text">
-                    <strong style={{ color: "#991b1b" }}>Proses Impor Terkendala</strong>
-                    <p style={{ color: "#b91c1c" }}>{error}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Hasil Ringkasan Impor */}
-            {result && (
-              <div
-                className="adm-action-notice"
+        {result && (
+          <div
+            className="adm-action-notice"
+            style={{
+              background: result.berhasil > 0 ? "#f0fdf4" : "#fffbeb",
+              borderColor: result.berhasil > 0 ? "#bbf7d0" : "#fde68a",
+              color: result.berhasil > 0 ? "#166534" : "#92400e",
+              marginBottom: 18,
+            }}
+          >
+            <div className="adm-notice-lead">
+              <span
+                className="adm-notice-icon"
                 style={{
-                  background: result.berhasil > 0 ? "#f0fdf4" : "#fffbeb",
-                  borderColor: result.berhasil > 0 ? "#bbf7d0" : "#fde68a",
-                  color: result.berhasil > 0 ? "#166534" : "#92400e",
-                  marginBottom: 16,
+                  background: result.berhasil > 0 ? "#dcfce7" : "#fef3c7",
+                  color: result.berhasil > 0 ? "#15803d" : "#d97706",
                 }}
               >
-                <div className="adm-notice-lead">
-                  <span
-                    className="adm-notice-icon"
-                    style={{
-                      background: result.berhasil > 0 ? "#dcfce7" : "#fef3c7",
-                      color: result.berhasil > 0 ? "#15803d" : "#d97706",
-                    }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
-                  </span>
-                  <div className="adm-notice-text" style={{ flex: 1 }}>
-                    <strong style={{ color: result.berhasil > 0 ? "#166534" : "#92400e" }}>
-                      {result.berhasil > 0 ? "Impor Berhasil Diproses" : "Perhatian Hasil Impor"}
-                    </strong>
-                    <p style={{ color: result.berhasil > 0 ? "#15803d" : "#b45309" }}>
-                      <strong>{result.berhasil}</strong> aset berhasil masuk ke sistem, {result.gagal} catatan dari total {result.total} baris berkas.
-                    </p>
-                    <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button
-                        className="dash-cta-btn dash-cta-primary"
-                        onClick={() => navigate("/admin/aset")}
-                        style={{ fontSize: 12.5, padding: "6px 14px" }}
-                      >
-                        Buka di Master Data Aset &rarr;
-                      </button>
-                      {result.asets?.length > 0 && (
-                        <button
-                          className="dash-cta-btn dash-cta-secondary"
-                          onClick={() => {
-                            const el = document.getElementById("preview-hasil-impor");
-                            if (el) el.scrollIntoView({ behavior: "smooth" });
-                          }}
-                          style={{ fontSize: 12.5, padding: "6px 14px" }}
-                        >
-                          Lihat Daftar Aset di Bawah &darr;
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Rincian Baris Gagal */}
-            {result?.errors?.length > 0 && (
-              <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 14, marginBottom: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <strong style={{ fontSize: 13, color: "#92400e" }}>
-                    Terdapat {result.errors.length} catatan penyesuaian pada baris data:
-                  </strong>
-                  <button
-                    onClick={() => setShowErrorList((v) => !v)}
-                    className="dash-link-action"
-                    style={{ fontSize: 12 }}
-                  >
-                    {showErrorList ? "Sembunyikan Rincian" : "Tampilkan Rincian"}
-                  </button>
-                </div>
-                {showErrorList && (
-                  <ul style={{ margin: "10px 0 0 18px", fontSize: 12, color: "#b45309", maxHeight: 180, overflowY: "auto" }}>
-                    {result.errors.map((e, i) => (
-                      <li key={i} style={{ marginBottom: 4 }}>{e}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {/* Interaktif Dropzone */}
-            <div
-              className={`dash-dropzone-box ${isDragging ? "dragging" : ""} ${file ? "has-file" : ""}`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileRef.current?.click()}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === "Enter" && fileRef.current?.click()}
-            >
-              <input
-                id="excel-input"
-                ref={fileRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleFileChange}
-                style={{ display: "none" }}
-              />
-
-              <div className="dash-dropzone-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="12" y1="18" x2="12" y2="12" />
-                  <line x1="9" y1="15" x2="15" y2="15" />
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
                 </svg>
+              </span>
+              <div className="adm-notice-text" style={{ flex: 1 }}>
+                <strong style={{ color: result.berhasil > 0 ? "#166534" : "#92400e" }}>
+                  {result.berhasil > 0 ? "Impor Berhasil Diproses" : "Perhatian Hasil Impor"}
+                </strong>
+                <p style={{ color: result.berhasil > 0 ? "#15803d" : "#b45309" }}>
+                  <strong>{result.berhasil}</strong> aset berhasil masuk ke sistem, {result.gagal} catatan dari total {result.total} baris berkas.
+                </p>
+                <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    className="dash-cta-btn dash-cta-primary"
+                    onClick={() => navigate("/admin/aset")}
+                    style={{ fontSize: 12.5, padding: "6px 14px" }}
+                  >
+                    Buka di Master Data Aset &rarr;
+                  </button>
+                  {result.asets?.length > 0 && (
+                    <button
+                      className="dash-cta-btn dash-cta-secondary"
+                      onClick={() => {
+                        const el = document.getElementById("preview-hasil-impor");
+                        if (el) el.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      style={{ fontSize: 12.5, padding: "6px 14px" }}
+                    >
+                      Lihat Daftar Aset di Bawah &darr;
+                    </button>
+                  )}
+                </div>
               </div>
-
-              {file ? (
-                <div className="dash-file-preview">
-                  <strong className="dash-file-name">{file.name}</strong>
-                  <span className="dash-file-size">Ukuran: {formatBytes(file.size)}</span>
-                  <span className="dash-file-change">Klik atau seret untuk mengganti berkas</span>
-                </div>
-              ) : (
-                <div className="dash-dropzone-prompt">
-                  <strong>Seret &amp; lepas berkas Excel di sini, atau klik untuk memilih</strong>
-                  <span>Mendukung format .xlsx, .xls, atau .csv (Maksimal 20 MB)</span>
-                </div>
-              )}
             </div>
+          </div>
+        )}
 
-            {/* Tombol Aksi Impor */}
-            <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 12 }}>
+        {result?.errors?.length > 0 && (
+          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 14, marginBottom: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <strong style={{ fontSize: 13, color: "#92400e" }}>
+                Terdapat {result.errors.length} catatan penyesuaian pada baris data:
+              </strong>
               <button
-                className="dash-cta-btn dash-cta-primary"
-                onClick={handleUpload}
-                disabled={loading || !file}
-                style={{ opacity: loading || !file ? 0.6 : 1, minWidth: 160, justifyContent: "center" }}
+                onClick={() => setShowErrorList((v) => !v)}
+                className="dash-link-action"
+                style={{ fontSize: 12 }}
               >
-                {loading ? (
-                  <>
-                    <span className="adm-loader-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
-                    Memproses Data...
-                  </>
-                ) : (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                    Mulai Impor Aset
-                  </>
-                )}
+                {showErrorList ? "Sembunyikan Rincian" : "Tampilkan Rincian"}
               </button>
+            </div>
+            {showErrorList && (
+              <ul style={{ margin: "10px 0 0 18px", fontSize: 12, color: "#b45309", maxHeight: 180, overflowY: "auto" }}>
+                {result.errors.map((e, i) => (
+                  <li key={i} style={{ marginBottom: 4 }}>{e}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
-              {file && !loading && (
-                <button
-                  className="dash-cta-btn dash-cta-secondary"
-                  onClick={() => {
-                    setFile(null);
-                    if (fileRef.current) fileRef.current.value = "";
-                  }}
-                >
-                  Batal
-                </button>
+        {/* Interaktif Dropzone Simetris */}
+        <div
+          className={`dash-dropzone-box ${isDragging ? "dragging" : ""} ${file ? "has-file" : ""}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && fileRef.current?.click()}
+          style={{ padding: "40px 24px" }}
+        >
+          <input
+            id="excel-input"
+            ref={fileRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={handleFileChange}
+            style={{ display: "none" }}
+          />
+
+          <div className="dash-dropzone-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="12" y1="18" x2="12" y2="12" />
+              <line x1="9" y1="15" x2="15" y2="15" />
+            </svg>
+          </div>
+
+          {file ? (
+            <div className="dash-file-preview">
+              <strong className="dash-file-name">{file.name}</strong>
+              <span className="dash-file-size">Ukuran: {formatBytes(file.size)}</span>
+              <span className="dash-file-change">Klik atau seret untuk mengganti berkas</span>
+            </div>
+          ) : (
+            <div className="dash-dropzone-prompt">
+              <strong>Seret &amp; lepas File di sini, atau klik untuk memilih</strong>
+            </div>
+          )}
+        </div>
+
+        {/* Baris Aksi Impor (Rata Kanan-Kiri & Terstruktur) */}
+        <div
+          style={{
+            marginTop: 20,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 14,
+            paddingTop: 18,
+            borderTop: "1px solid #f1f5f9",
+          }}
+        >
+          <div style={{ fontSize: 13, color: "#64748b" }}>
+            {file ? (
+              <span style={{ color: "#0f172a", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Berkas siap diimpor: <span style={{ color: "#0284c7" }}>{file.name}</span> ({formatBytes(file.size)})
+              </span>
+            ) : (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                Import
+              </>
+            )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {file && !loading && (
+              <button
+                type="button"
+                className="dash-cta-btn dash-cta-secondary"
+                onClick={() => {
+                  setFile(null);
+                  if (fileRef.current) fileRef.current.value = "";
+                }}
+                style={{ padding: "9px 18px", fontSize: 13 }}
+              >
+                Batal
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="dash-cta-btn dash-cta-primary"
+              onClick={handleUpload}
+              disabled={loading || !file}
+              style={{
+                opacity: loading || !file ? 0.6 : 1,
+                minWidth: 170,
+                justifyContent: "center",
+                padding: "9px 22px",
+                fontSize: 13,
+              }}
+            >
+              {loading ? (
+                <>
+                  <span className="adm-loader-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                  Memproses Data...
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  Mulai Import Aset
+                </>
               )}
-            </div>
-          </section>
+            </button>
+          </div>
         </div>
-
-        {/* Kolom Kanan: Panduan Kolom Standar BMKG */}
-        <div className="dash-col-secondary">
-          <section className="dash-panel-box">
-            <div className="dash-panel-titlebar">
-              <div>
-                <span className="dash-panel-kicker">FORMAT DATA</span>
-                <h2 className="dash-panel-heading">Format Kolom Spreadsheet</h2>
-              </div>
-            </div>
-
-            <p style={{ margin: "0 0 14px 0", fontSize: 13, color: "#64748b", lineHeight: 1.5 }}>
-              Sistem toleran dan otomatis memetakan kolom berdasarkan variasi nama judul di lembar Excel Anda:
-            </p>
-
-            <div className="dash-column-guide-list">
-              <div className="dash-col-guide-item">
-                <span className="dash-col-pill required">Fleksibel</span>
-                <div className="dash-col-desc">
-                  <strong>Kode Barang</strong>
-                  <small>Kodefikasi BMN (otomatis dibuat format BMN jika di berkas tidak ada)</small>
-                </div>
-              </div>
-
-              <div className="dash-col-guide-item">
-                <span className="dash-col-pill required">Disarankan</span>
-                <div className="dash-col-desc">
-                  <strong>Nama Barang / Alat</strong>
-                  <small>Nama atau uraian perangkat dinas (contoh: AWS, Barometer, Genset)</small>
-                </div>
-              </div>
-
-              <div className="dash-col-guide-item">
-                <span className="dash-col-pill optional">Opsional</span>
-                <div className="dash-col-desc">
-                  <strong>NUP</strong>
-                  <small>Nomor urut pendaftaran (otomatis berurutan &amp; dicegah duplikat)</small>
-                </div>
-              </div>
-
-              <div className="dash-col-guide-item">
-                <span className="dash-col-pill optional">Opsional</span>
-                <div className="dash-col-desc">
-                  <strong>Nama Satker</strong>
-                  <small>Stasiun / unit kerja penempatan aset (default: BMKG Pusat)</small>
-                </div>
-              </div>
-
-              <div className="dash-col-guide-item">
-                <span className="dash-col-pill optional">Opsional</span>
-                <div className="dash-col-desc">
-                  <strong>Merk &amp; Tipe</strong>
-                  <small>Pabrikan dan model perangkat operasional</small>
-                </div>
-              </div>
-
-              <div className="dash-col-guide-item">
-                <span className="dash-col-pill optional">Opsional</span>
-                <div className="dash-col-desc">
-                  <strong>Kondisi</strong>
-                  <small>Baik, Rusak Ringan, atau Rusak Berat (default: Baik)</small>
-                </div>
-              </div>
-
-              <div className="dash-col-guide-item">
-                <span className="dash-col-pill optional">Opsional</span>
-                <div className="dash-col-desc">
-                  <strong>Nilai Perolehan</strong>
-                  <small>Harga pembelian / perolehan dalam Rupiah</small>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
+      </section>
 
       {/* ─── Pratinjau Langsung Aset yang Baru Saja Diimpor ─── */}
       {result?.asets?.length > 0 && (
@@ -564,88 +493,6 @@ function ImportData() {
         </section>
       )}
 
-      {/* ─── Tabel Riwayat Batch Impor ─── */}
-      <section className="dash-panel-box" style={{ marginTop: 22 }}>
-        <div className="dash-panel-titlebar">
-          <div>
-            <span className="dash-panel-kicker">CATATAN RIWAYAT</span>
-            <h2 className="dash-panel-heading">Riwayat Batch Impor</h2>
-          </div>
-          <button className="dash-link-action" onClick={loadRiwayat}>
-            Muat Ulang Riwayat &rarr;
-          </button>
-        </div>
-
-        {riwayat.length === 0 ? (
-          <div className="dash-state-pad">
-            Belum ada riwayat berkas impor yang tercatat di sistem.
-          </div>
-        ) : (
-          <div className="dash-table-container">
-            <table className="dash-compact-table">
-              <thead>
-                <tr>
-                  <th>Nama Berkas</th>
-                  <th>Total Baris</th>
-                  <th>Berhasil</th>
-                  <th>Gagal</th>
-                  <th>Otorisator</th>
-                  <th>Waktu Impor</th>
-                  <th style={{ width: 190, textAlign: "center" }}>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {riwayat.map((r) => (
-                  <tr key={r.id}>
-                    <td>
-                      <strong style={{ color: "#0f172a" }}>{r.nama_file}</strong>
-                    </td>
-                    <td>{r.jumlah_data}</td>
-                    <td>
-                      <span className="dash-status-pill pill-ready">{r.jumlah_berhasil}</span>
-                    </td>
-                    <td>
-                      {r.jumlah_gagal > 0 ? (
-                        <span className="dash-status-pill pill-alert">{r.jumlah_gagal}</span>
-                      ) : (
-                        <span className="dash-status-pill pill-muted">0</span>
-                      )}
-                    </td>
-                    <td>{r.admin_name || "Admin"}</td>
-                    <td className="dash-cell-date">
-                      {new Date(r.imported_at).toLocaleString("id-ID", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </td>
-                    <td style={{ textAlign: "center" }}>
-                      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-                        <button
-                          className="d-btn d-btn-secondary d-btn-sm"
-                          onClick={() => handleViewBatchAssets(r)}
-                          title="Lihat daftar aset dari batch ini"
-                        >
-                          Lihat Aset ({r.jumlah_berhasil})
-                        </button>
-                        <button
-                          className="d-btn d-btn-danger d-btn-sm"
-                          onClick={() => handleDeleteBatch(r.id, r.nama_file, r.jumlah_berhasil)}
-                          title="Hapus seluruh batch aset dari berkas ini"
-                        >
-                          Hapus
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
 
       {/* ─── Modal Rincian Aset Per Batch ─── */}
       {selectedBatch && (

@@ -71,6 +71,3 @@ See the section about [deployment](https://facebook.github.io/create-react-app/d
 
 If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project."# inventaris_bmkg" 
 =======
-# inventaris_bmkg
-repository ini sebagai back up dalam pembuatan project di tempat industri
->>>>>>> 3fc1ffe818c84166ab14a14a679df2cf2ecdb7bd

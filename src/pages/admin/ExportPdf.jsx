@@ -159,10 +159,10 @@ function ExportPdf() {
       window.URL.revokeObjectURL(blobUrl);
 
       setSuccessNotice(
-        `Dokumen PDF berhasil diterbitkan dan diunduh (${matchingTotal !== null ? matchingTotal : "semua"} item aset disertakan).`
+        `Dokumen berhasil diunduh (${matchingTotal !== null ? matchingTotal : "semua"} item aset disertakan).`
       );
     } catch (err) {
-      setError("Gagal membuat berkas PDF. Pastikan backend aktif dan data aset dapat diakses.");
+      setError("Gagal membuat berkas. Pastikan backend aktif dan data aset dapat diakses.");
     } finally {
       setDownloading(false);
     }
@@ -170,40 +170,9 @@ function ExportPdf() {
 
   return (
     <div className="dash-canvas">
-      {/* ─── Header Halaman Cetak Dokumen ─── */}
       <header className="dash-view-header">
         <div className="dash-view-titles">
-          <div className="dash-kicker-tag">
-            <span className="dash-kicker-dot" />
-            <span>CETAK & ARSIP DOKUMEN BMN</span>
-          </div>
-          <h1 className="dash-view-title">Cetak Dokumen & Rekapitulasi Aset (PDF)</h1>
-          <p className="dash-view-desc">
-            Saring data inventaris yang ingin dicetak berdasarkan kondisi, status, satker, maupun periode bulan perolehan, lalu unduh berkas laporan resmi PDF.
-          </p>
-        </div>
-
-        <div className="dash-view-actions">
-          <button
-            type="button"
-            className="dash-cta-btn dash-cta-secondary"
-            onClick={handleReset}
-            title="Kembalikan semua parameter ke pengaturan awal"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-            </svg>
-            Reset Filter
-          </button>
-          <button
-            type="button"
-            className="dash-cta-btn dash-cta-primary"
-            onClick={() => navigate("/admin/aset")}
-            title="Ke katalog data aset"
-          >
-            Ke Data Aset &rarr;
-          </button>
+          <h1 className="dash-view-title">Cetak Dokumen Aset Barang Milik Negara</h1>
         </div>
       </header>
 
@@ -219,7 +188,7 @@ function ExportPdf() {
               </svg>
             </span>
             <div className="adm-notice-text">
-              <strong style={{ color: "#991b1b" }}>Penerbitan Dokumen Terkendala</strong>
+              <strong style={{ color: "#991b1b" }}>Cetak Dokumen Terkendala</strong>
               <p style={{ color: "#b91c1c" }}>{error}</p>
             </div>
           </div>
