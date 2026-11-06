@@ -12,37 +12,61 @@
   color: #0f172a;
 }
 
-/* ─── Sidebar Navigation ──────────────────────────────── */
+/* ─── Compact Sticky Sidebar (Serasi dengan Admin BMKG) ─── */
 .dash-sidebar {
-  width: 270px;
-  min-width: 270px;
+  width: 250px;
+  min-width: 250px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  left: 0;
+  background: #0b1e36;
+  background: linear-gradient(180deg, #0d2342 0%, #091a30 100%);
+  border-right: 1px solid #163254;
   display: flex;
   flex-direction: column;
-  padding: 24px 16px;
-  background: linear-gradient(180deg, #071938 0%, #0a224a 55%, #071630 100%);
-  color: #ffffff;
-  position: relative;
+  padding: 18px 12px;
   z-index: 30;
-  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom sleek scrollbar for sidebar */
+.dash-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+.dash-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dash-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+.dash-sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .dash-sidebar.collapsed {
-  width: 76px;
-  min-width: 76px;
+  width: 70px;
+  min-width: 70px;
+  padding: 18px 8px;
 }
 
 /* Sidebar Brand */
 .dash-sidebar-header {
-  padding-bottom: 20px;
-  margin-bottom: 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 16px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .dash-brand-wrap {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 11px;
+  cursor: pointer;
+  outline: none;
 }
 
 .dash-sidebar.collapsed .dash-brand-wrap {
@@ -50,16 +74,17 @@
 }
 
 .dash-brand-logo {
-  width: 42px;
-  height: 42px;
-  flex-shrink: 0;
-  padding: 4px;
+  width: 38px;
+  height: 38px;
   background: #ffffff;
-  border-radius: 10px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  padding: 4px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
 }
 
 .dash-brand-logo img {
@@ -75,62 +100,34 @@
 }
 
 .dash-brand-kicker {
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #38bdf8;
+  color: #7dd3fc;
 }
 
 .dash-brand-title {
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 14.5px;
+  font-weight: 700;
   color: #ffffff;
   letter-spacing: -0.01em;
-}
-
-.dash-user-badge-role {
-  margin-top: 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 12px;
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  border-radius: 6px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #bae6fd;
-}
-
-.dash-pulse-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #38bdf8;
-  box-shadow: 0 0 8px #38bdf8;
-  animation: dash-dot-pulse 2.2s infinite ease-in-out;
-}
-
-@keyframes dash-dot-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.3; transform: scale(0.85); }
 }
 
 /* Nav Menu */
 .dash-nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  flex: 1;
-  overflow-y: auto;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
 .dash-nav-section-label {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: rgba(148, 163, 184, 0.6);
-  padding: 6px 12px 4px;
+  color: #94a3b8;
+  padding: 8px 12px 4px;
+  text-transform: uppercase;
 }
 
 .dash-sidebar.collapsed .dash-nav-section-label {
@@ -141,25 +138,24 @@
 .dash-nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 9px;
-  color: rgba(226, 232, 240, 0.8);
-  font-family: inherit;
-  font-size: 13.5px;
-  cursor: pointer;
-  border: 1px solid transparent;
-  background: transparent;
-  width: 100%;
-  text-align: left;
+  gap: 11px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
   text-decoration: none;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  width: 100%;
   box-sizing: border-box;
-  transition: all 0.16s ease;
 }
 
 .dash-sidebar.collapsed .dash-nav-item {
   justify-content: center;
-  padding: 12px 0;
+  padding: 11px 0;
 }
 
 .dash-nav-item:hover:not(.active) {
@@ -168,19 +164,26 @@
 }
 
 .dash-nav-item.active {
-  background: #0284c7;
+  background: rgba(2, 132, 199, 0.22);
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  border-color: rgba(56, 189, 248, 0.35);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 #38bdf8;
+}
+
+.dash-nav-item.active .dash-nav-icon {
+  color: #38bdf8;
 }
 
 .dash-nav-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: #94a3b8;
+  transition: color 0.15s ease;
 }
 
 .dash-nav-icon svg {
@@ -188,42 +191,115 @@
   height: 18px;
 }
 
-.dash-nav-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.25;
+.dash-nav-item:hover .dash-nav-icon {
+  color: #ffffff;
 }
 
 .dash-nav-title {
-  font-size: 13.5px;
-  font-weight: 700;
+  flex: 1;
+  white-space: nowrap;
 }
 
-.dash-nav-sub {
-  font-size: 11px;
-  font-weight: 400;
-  color: rgba(226, 232, 240, 0.6);
-}
-
-.dash-nav-item.active .dash-nav-sub {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-/* Sidebar Footer (Logout) */
+/* Elevated Sidebar Session & Logout Dock (Dinaikkan agar Terlihat Jelas) */
+.dash-sidebar-bottom,
 .dash-sidebar-footer {
-  margin-top: auto;
+  margin-top: 18px;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
+.dash-sidebar-user-dock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  margin-bottom: 2px;
+}
+
+.dash-sidebar.collapsed .dash-sidebar-user-dock {
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.dash-sidebar-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: #0284c7;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
+}
+
+.dash-sidebar-user-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  overflow: hidden;
+}
+
+.dash-sidebar-user-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-sidebar-user-badge {
+  font-size: 10.5px;
+  color: #7dd3fc;
+  font-weight: 500;
+}
+
+.dash-btn-logout,
 .dash-logout {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border-radius: 8px;
   color: #fca5a5;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
+.dash-sidebar.collapsed .dash-btn-logout,
+.dash-sidebar.collapsed .dash-logout {
+  justify-content: center;
+  padding: 11px 0;
+}
+
+.dash-btn-logout:hover,
 .dash-logout:hover {
-  background: rgba(239, 68, 68, 0.15);
-  color: #fee2e2;
-  border-color: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.22);
+  color: #ffffff;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.dash-btn-logout:hover .dash-nav-icon,
+.dash-logout:hover .dash-nav-icon {
+  color: #ffffff;
 }
 
 /* ─── Main Area ───────────────────────────────────────── */
@@ -511,7 +587,8 @@
 
   .dash-sidebar.collapsed {
     transform: translateX(-100%);
-    width: 270px;
+    width: 250px;
+    min-width: 250px;
   }
 
   .dash-navbar {

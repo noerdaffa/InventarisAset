@@ -330,7 +330,7 @@ function ImportData() {
               <span className="dash-file-change">Klik atau seret untuk mengganti berkas</span>
             </div>
           ) : (
-            <div className="dash-dropzone-prompt">
+            <div className="dash-dropzone">
               <strong>Seret &amp; lepas File di sini, atau klik untuk memilih</strong>
             </div>
           )}

@@ -94,7 +94,7 @@ function UserDashboard() {
 
   return (
     <div className="dash-shell">
-      {/* Sidebar Navigasi */}
+      {/* Sidebar Navigasi (Sticky & Serasi dengan Admin) */}
       <aside className={`dash-sidebar ${sidebarOpen ? "" : "collapsed"}`}>
         <div className="dash-sidebar-header">
           <div
@@ -102,30 +102,24 @@ function UserDashboard() {
             onClick={() => navigate("/user/aset")}
             style={{ cursor: "pointer" }}
             role="button"
-            title="Ke Daftar Aset"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && navigate("/user/aset")}
+            title="Ke Beranda Inventaris"
           >
             <div className="dash-brand-logo">
               <img src="/logo-bmkg.png" alt="Logo BMKG" />
             </div>
             {sidebarOpen && (
               <div className="dash-brand-info">
-                <span className="dash-brand-kicker">BMKG INDONESIA</span>
+                <span className="dash-brand-kicker">BMKG PUSAT</span>
                 <span className="dash-brand-title">Inventaris BMN</span>
               </div>
             )}
           </div>
-          {sidebarOpen && (
-            <div className="dash-user-badge-role">
-              <span className="dash-pulse-dot" aria-hidden="true"></span>
-              <span>Portal Pegawai</span>
-            </div>
-          )}
         </div>
 
         <nav className="dash-nav" aria-label="Menu Utama">
-          <div className="dash-nav-section-label">
-            {sidebarOpen ? "MENU NAVIGASI" : "•••"}
-          </div>
+          {sidebarOpen && <div className="dash-nav-section-label">LAYANAN PEGAWAI</div>}
           {MENU.map((item) => (
             <NavLink
               key={item.path}
@@ -134,31 +128,26 @@ function UserDashboard() {
               title={item.label}
             >
               <span className="dash-nav-icon">{item.icon}</span>
-              {sidebarOpen && (
-                <div className="dash-nav-text">
-                  <span className="dash-nav-title">{item.label}</span>
-                  <span className="dash-nav-sub">{item.subtitle}</span>
-                </div>
-              )}
+              {sidebarOpen && <span className="dash-nav-title">{item.label}</span>}
             </NavLink>
           ))}
         </nav>
 
-        <div className="dash-sidebar-footer">
-          <button className="dash-nav-item dash-logout" onClick={logout} title="Keluar dari sistem">
+        {/* Dock Sesi & Tombol Logout yang Dinaikkan */}
+        <div className="dash-sidebar-bottom">
+          <button
+            className="dash-nav-item dash-btn-logout"
+            onClick={logout}
+            title="Keluar dari sesi akun pegawai"
+          >
             <span className="dash-nav-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
             </span>
-            {sidebarOpen && (
-              <div className="dash-nav-text">
-                <span className="dash-nav-title">Keluar Akun</span>
-                <span className="dash-nav-sub">Akhiri sesi login</span>
-              </div>
-            )}
+            {sidebarOpen && <span className="dash-nav-title">Logout</span>}
           </button>
         </div>
       </aside>

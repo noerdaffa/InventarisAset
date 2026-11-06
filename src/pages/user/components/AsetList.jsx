@@ -50,7 +50,6 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
   const [riwayat, setRiwayat] = useState([]);
   const [riwayatLoading, setRiwayatLoading] = useState(false);
 
-  // ─── State Pengembalian oleh User ───────────────────────────────────
   const [modalUserKembali, setModalUserKembali] = useState(null);
   const [tglUserKembali, setTglUserKembali] = useState(new Date().toISOString().slice(0, 10));
   const [kondisiUserKembali, setKondisiUserKembali] = useState("Baik");
@@ -58,7 +57,6 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
   const [submittingUserKembali, setSubmittingUserKembali] = useState(false);
   const [msgUserKembali, setMsgUserKembali] = useState({ text: "", type: "" });
 
-  // Fetch data aset dari database
   const fetchAsets = useCallback(
     async (page = 1) => {
       setLoading(true);
@@ -83,7 +81,6 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
     [searchTerm, filters, pagination.limit]
   );
 
-  // Fetch opsi filter yang ada dari database
   const fetchFilterOptions = async () => {
     try {
       const response = await api.get("/aset/opsi-filter");
@@ -145,7 +142,6 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
     filters.nama_satker,
   ].filter(Boolean).length;
 
-  // ─── Fungsi Peminjaman ──────────────────────────────────────────────
   const fetchRiwayat = useCallback(async () => {
     if (!userData?.nip) return;
     setRiwayatLoading(true);
@@ -317,7 +313,6 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
         </div>
       </div>
 
-      {/* Toolbar Pencarian dan Filter */}
       <div className="search-filter-section">
         <div className="search-box-wrapper">
           <span className="search-icon" aria-hidden="true">
