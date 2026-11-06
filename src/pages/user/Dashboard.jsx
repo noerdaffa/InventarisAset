@@ -4,8 +4,19 @@ import "./Dashboard.css";
 
 const MENU = [
   {
+    path: "/user/profile",
+    label: "Profil Pegawai",
+    subtitle: "Identitas & Keamanan Akun",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </svg>
+    ),
+  },
+  {
     path: "/user/aset",
-    label: "Daftar Aset BMN",
+    label: "Daftar Aset ",
     subtitle: "Katalog & Pengajuan Pinjam",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -17,7 +28,7 @@ const MENU = [
   },
   {
     path: "/user/peminjaman",
-    label: "Peminjaman Saya",
+    label: "Peminjaman Aset",
     subtitle: "Status Permohonan Pinjam",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -40,22 +51,11 @@ const MENU = [
       </svg>
     ),
   },
-  {
-    path: "/user/profile",
-    label: "Profil Pegawai",
-    subtitle: "Identitas & Keamanan Akun",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
-      </svg>
-    ),
-  },
 ];
 
 const PAGE_TITLES = {
-  "/user/aset": "Daftar Aset BMN",
-  "/user/peminjaman": "Peminjaman Saya",
+  "/user/aset": "Daftar Aset ",
+  "/user/peminjaman": "Peminjaman Aset",
   "/user/pengembalian": "Pengembalian Aset",
   "/user/profile": "Profil Pegawai",
   "/user/profil": "Profil Pegawai",

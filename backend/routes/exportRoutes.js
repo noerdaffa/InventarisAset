@@ -18,13 +18,13 @@ function formatRupiah(n) {
 
 function drawHeader(doc, judul) {
   const pageWidth = doc.page.width;
-  const startY = 30;
+  const startY = 24;
   const logoPath = path.join(process.cwd(), "public", "logo-bmkg.png");
 
-  // Logo BMKG resmi
+  // Logo BMKG resmi di sebelah kiri (sejajar margin kiri 40)
   if (fs.existsSync(logoPath)) {
     try {
-      doc.image(logoPath, 48, startY, { width: 48 });
+      doc.image(logoPath, 40, startY, { width: 50 });
     } catch (e) {
       console.warn("Gagal merender logo BMKG pada PDF:", e.message);
     }
@@ -35,31 +35,38 @@ function drawHeader(doc, judul) {
     .fontSize(14)
     .font("Helvetica-Bold")
     .fillColor("#000000")
-    .text("BADAN METEOROLOGI, KLIMATOLOGI, DAN GEOFISIKA", 106, startY + 4, {
+    .text("BADAN METEOROLOGI, KLIMATOLOGI, DAN GEOFISIKA", 40, startY + 2, {
       align: "center",
-      width: pageWidth - 152,
+      width: pageWidth - 80,
     })
     .fontSize(9)
     .font("Helvetica")
-    .fillColor("#111111")
+    .fillColor("#000000")
     .text(
       "Jl. Angkasa I No. 2, Jakarta 10610 Telp : (021) 4246321 Fax : (021) 4246703",
-      106,
-      startY + 24,
-      { align: "center", width: pageWidth - 152 }
-    )
-    .text(
-      "P. O. BOX 3540 JKT, Website : http://www.bmkg.go.id",
-      106,
-      startY + 38,
-      { align: "center", width: pageWidth - 152 }
+      40,
+      startY + 23,
+      { align: "center", width: pageWidth - 80 }
     );
 
-  // Garis Pembatas Kop Surat (Garis horizontal tegas seperti di PDF)
+  // Baris PO BOX & Website (dengan tautan URL berwarna biru sesuai format PDF resmi)
+  const prefixText = "P. O. BOX 3540 JKT, Website : ";
+  const urlText = "http://www.bmkg.go.id";
+  doc.fontSize(9).font("Helvetica");
+  const totalW = doc.widthOfString(prefixText + urlText);
+  const startX = (pageWidth - totalW) / 2;
+
+  doc
+    .fillColor("#000000")
+    .text(prefixText, startX, startY + 37, { continued: true })
+    .fillColor("#0000ee")
+    .text(urlText, { link: "http://www.bmkg.go.id", underline: false });
+
+  // Garis Pembatas Kop Surat (Garis horizontal tegas melintang penuh margin kiri ke kanan)
   const lineY = startY + 68;
   doc
     .strokeColor("#000000")
-    .lineWidth(2)
+    .lineWidth(1.8)
     .moveTo(40, lineY)
     .lineTo(pageWidth - 40, lineY)
     .stroke();
@@ -69,23 +76,23 @@ function drawHeader(doc, judul) {
     .font("Helvetica-Bold")
     .fontSize(11.5)
     .fillColor("#0a1628")
-    .text(judul, 40, lineY + 10, { align: "center", width: pageWidth - 80 })
+    .text(judul, 40, lineY + 11, { align: "center", width: pageWidth - 80 })
     .font("Helvetica")
     .fontSize(8)
     .fillColor("#666666")
-    .text(`Dicetak: ${new Date().toLocaleString("id-ID")}`, 40, lineY + 26, {
+    .text(`Dicetak: ${new Date().toLocaleString("id-ID")}`, 40, lineY + 27, {
       align: "center",
       width: pageWidth - 80,
     });
 
-  doc.y = lineY + 42;
+  doc.y = lineY + 44;
 }
 
 function drawTable(doc, columns, rows) {
   const startX = 40;
   let y = doc.y;
   const rowHeight = 20;
-  const pageBottom = doc.page.height - 50;
+  const pageBottom = doc.page.height - 55;
 
   function drawRow(values, isHeader) {
     let x = startX;
@@ -106,7 +113,7 @@ function drawTable(doc, columns, rows) {
   rows.forEach((row, idx) => {
     if (y + rowHeight > pageBottom) {
       doc.addPage({ layout: "landscape", margin: 40 });
-      y = 50;
+      y = 45;
       drawRow(columns.map((c) => c.label), true);
     }
     if (idx % 2 === 1) {
@@ -167,7 +174,7 @@ router.get("/aset/pdf", async (req, res) => {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", "attachment; filename=laporan-aset.pdf");
 
-    const doc = new PDFDocument({ margin: 40, layout: "landscape", size: "A4" });
+    const doc = new PDFDocument({ margin: 40, layout: "landscape", size: "A4", bufferPages: true });
     doc.pipe(res);
 
     const BULAN_NAMES = [
@@ -213,6 +220,42 @@ router.get("/aset/pdf", async (req, res) => {
         formatRupiah(a.nilai_perolehan),
       ])
     );
+
+    // Stamping Catatan Kaki BSrE resmi BMKG & Nomor Halaman pada setiap lembar
+    const range = doc.bufferedPageRange();
+    const pageWidth = doc.page.width;
+    for (let i = range.start; i < range.start + range.count; i++) {
+      doc.switchToPage(i);
+      const footerY = doc.page.height - 35;
+      doc
+        .strokeColor("#000000")
+        .lineWidth(0.6)
+        .moveTo(40, footerY - 6)
+        .lineTo(pageWidth - 40, footerY - 6)
+        .stroke();
+
+      doc
+        .font("Helvetica")
+        .fontSize(7.5)
+        .fillColor("#333333")
+        .text(
+          "Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat elektronik yang diterbitkan oleh Balai Besar Sertifikasi Elektronik (BSrE), Badan Siber dan Sandi Negara (BSSN).",
+          40,
+          footerY,
+          { align: "center", width: pageWidth - 80 }
+        );
+
+      if (range.count > 1) {
+        doc
+          .font("Helvetica")
+          .fontSize(8)
+          .fillColor("#555555")
+          .text(`Halaman ${i + 1} dari ${range.count}`, 40, footerY + 11, {
+            align: "right",
+            width: pageWidth - 80,
+          });
+      }
+    }
 
     doc.end();
   } catch (err) {
