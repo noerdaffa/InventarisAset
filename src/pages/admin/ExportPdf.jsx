@@ -172,7 +172,7 @@ function ExportPdf() {
     <div className="dash-canvas">
       <header className="dash-view-header">
         <div className="dash-view-titles">
-          <h1 className="dash-view-title">Cetak Dokumen Aset Barang Milik Negara</h1>
+          <h1 className="dash-view-title">Cetak Dokumen Aset</h1>
         </div>
       </header>
 

@@ -46,7 +46,7 @@ function UserLogin() {
               <img src="/logo-bmkg.png" alt="Logo BMKG" className="auth-bmkg-logo" />
             </div>
             <span className="auth-instansi-tag">BADAN METEOROLOGI, KLIMATOLOGI, DAN GEOFISIKA</span>
-            <h1 className="auth-card-title">Form Login Pegawai</h1>
+            <h1 className="auth-card-title">Login Pegawai</h1>
           </div>
 
           {message.text && (

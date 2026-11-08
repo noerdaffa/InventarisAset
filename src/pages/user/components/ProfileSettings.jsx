@@ -110,13 +110,8 @@ function ProfileSettings({ userData: propUserData }) {
 
   return (
     <div className="profile-container">
-      {/* Header Halaman Profil */}
       <div className="profile-header">
-        <div className="profile-badge-role">Pengaturan Akun Kedinasan</div>
         <h2 className="profile-title">Profil &amp; Keamanan Pegawai</h2>
-        <p className="profile-subtitle">
-          Kelola informasi data diri resmi dan pengaturan keamanan kata sandi portal inventaris BMKG.
-        </p>
       </div>
 
       {/* Alert Notifikasi */}
@@ -141,9 +136,7 @@ function ProfileSettings({ userData: propUserData }) {
         </div>
       )}
 
-      {/* Grid Dua Kolom: Identitas & Keamanan */}
       <div className="profile-grid">
-        {/* Kolom 1: Kartu Identitas Pegawai */}
         <div className="profile-card">
           <div className="profile-card-header">
             <div className="card-header-icon blue">
@@ -154,7 +147,6 @@ function ProfileSettings({ userData: propUserData }) {
             </div>
             <div>
               <h3 className="profile-card-title">Identitas Pegawai</h3>
-              <p className="profile-card-subtitle">Data resmi yang terhubung dengan sistem BMN</p>
             </div>
 
             {!editMode && (
@@ -167,7 +159,7 @@ function ProfileSettings({ userData: propUserData }) {
                   <path d="M12 20h9"></path>
                   <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
                 </svg>
-                <span>Ubah Nama</span>
+                <span>Ubah Username</span>
               </button>
             )}
           </div>
@@ -187,7 +179,6 @@ function ProfileSettings({ userData: propUserData }) {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
-                <span>Akun Pegawai BMKG Terverifikasi</span>
               </div>
             </div>
           </div>
@@ -202,7 +193,7 @@ function ProfileSettings({ userData: propUserData }) {
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                       <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                     </svg>
-                    Terkunci permanen
+                    Terkunci
                   </span>
                 </div>
                 <input
@@ -249,7 +240,7 @@ function ProfileSettings({ userData: propUserData }) {
           ) : (
             <div className="profile-info-grid">
               <div className="info-cell">
-                <span className="info-cell-label">NIP Resmi</span>
+                <span className="info-cell-label">NIP</span>
                 <span className="info-cell-value monospace">{profile.nip}</span>
               </div>
               <div className="info-cell">
@@ -259,10 +250,6 @@ function ProfileSettings({ userData: propUserData }) {
               <div className="info-cell">
                 <span className="info-cell-label">Hak Akses Sistem</span>
                 <span className="info-cell-value">Peminjaman &amp; Monitoring Aset</span>
-              </div>
-              <div className="info-cell">
-                <span className="info-cell-label">Instansi</span>
-                <span className="info-cell-value">BMKG Republik Indonesia</span>
               </div>
             </div>
           )}
@@ -278,8 +265,7 @@ function ProfileSettings({ userData: propUserData }) {
               </svg>
             </div>
             <div>
-              <h3 className="profile-card-title">Keamanan &amp; Kata Sandi</h3>
-              <p className="profile-card-subtitle">Pengaturan kata sandi untuk melindungi akses inventaris</p>
+              <h3 className="profile-card-title">Password</h3>
             </div>
 
             {!changePasswordMode && (
@@ -292,7 +278,7 @@ function ProfileSettings({ userData: propUserData }) {
                   <path d="M12 20h9"></path>
                   <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
                 </svg>
-                <span>Ubah Sandi</span>
+                <span>Ubah Password </span>
               </button>
             )}
           </div>

@@ -89,14 +89,7 @@ function Dashboard() {
       {/* ─── Modern Executive View Header ─── */}
       <header className="dash-view-header">
         <div className="dash-view-titles">
-          <div className="dash-kicker-tag">
-            <span className="dash-kicker-dot" />
-            <span>SISTEM INFORMASI MANAJEMEN ASET BMN</span>
-          </div>
-          <h1 className="dash-view-title">Pusat Inventaris &amp; Logistik Operasional</h1>
-          <p className="dash-view-desc">
-            Badan Meteorologi, Klimatologi, dan Geofisika &bull; Ringkasan ketersediaan aset dan sirkulasi peminjaman dinas.
-          </p>
+          <h1 className="dash-view-title">Dashboard Admin </h1>
         </div>
         <div className="dash-view-actions">
           <button
@@ -387,7 +380,7 @@ function Dashboard() {
                 </svg>
               </div>
               <div className="dash-tool-text">
-                <strong>Laporan Resmi PDF</strong>
+                <strong>Laporan Aset PDF</strong>
                 <span>Cetak rekapitulasi dinas</span>
               </div>
             </button>

@@ -55,7 +55,7 @@ function UserRegister() {
               <img src="/logo-bmkg.png" alt="Logo BMKG" className="auth-bmkg-logo" />
             </div>
             <span className="auth-instansi-tag">BADAN METEOROLOGI, KLIMATOLOGI, DAN GEOFISIKA</span>
-            <h1 className="auth-card-title">Form Registrasi Pegawai</h1>
+            <h1 className="auth-card-title">Registrasi Pegawai</h1>
           </div>
 
           {message.text && (

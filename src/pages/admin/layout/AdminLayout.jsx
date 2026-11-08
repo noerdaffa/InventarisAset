@@ -176,8 +176,7 @@ function AdminLayout() {
             </div>
             {sidebarOpen && (
               <div className="adm-brand-meta">
-                <span className="adm-brand-org">BMKG PUSAT</span>
-                <span className="adm-brand-app">Inventaris BMN</span>
+                <span className="adm-brand-org">Badan Meteorologi Klimatologi dan Geofisika</span>
               </div>
             )}
           </div>

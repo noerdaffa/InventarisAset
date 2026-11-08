@@ -111,8 +111,7 @@ function UserDashboard() {
             </div>
             {sidebarOpen && (
               <div className="dash-brand-info">
-                <span className="dash-brand-kicker">BMKG PUSAT</span>
-                <span className="dash-brand-title">Inventaris BMN</span>
+                <span className="dash-brand-kicker">Badan Meteorologi Klimatologi dan Geofisika</span>
               </div>
             )}
           </div>
@@ -204,17 +203,9 @@ function UserDashboard() {
         <section className="dash-hero-banner">
           <div className="dash-hero-content">
             <div className="dash-hero-headline">
-              <div className="dash-hero-tag">
-                <span className="dash-tag-dot"></span>
-                <span>Sistem Informasi Inventaris Barang Milik Negara</span>
-              </div>
               <h1 className="dash-hero-title">
                 Selamat Datang, <span>{userData.nama}</span>
               </h1>
-              <p className="dash-hero-desc">
-                Portal layanan mandiri pegawai BMKG untuk pengecekan spesifikasi barang inventaris,
-                pemantauan status peminjaman peralatan, dan pembaruan profil kedinasan.
-              </p>
             </div>
 
             <div className="dash-hero-kpis">

@@ -99,14 +99,7 @@ export default function Monitoring() {
       {/* ─── Executive View Header ─── */}
       <header className="dash-view-header">
         <div className="dash-view-titles">
-          <div className="dash-kicker-tag">
-            <span className="dash-kicker-dot" />
-            <span>MONITORING &amp; AUDIT FISIK</span>
-          </div>
-          <h1 className="dash-view-title">Monitoring Kondisi Aset BMN</h1>
-          <p className="dash-view-desc">
-            Badan Meteorologi, Klimatologi, dan Geofisika &bull; Pemantauan komprehensif kondisi kelaikan fisik dan evaluasi inventaris dinas secara real-time.
-          </p>
+          <h1 className="dash-view-title">Monitoring Kondisi Aset</h1>
         </div>
 
         <div className="dash-view-actions">
