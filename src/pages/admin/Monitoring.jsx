@@ -89,14 +89,12 @@ export default function Monitoring() {
     return { baik, ringan, berat, totalRusak, pctBaik, pctRusak };
   }, [data?.per_kondisi, totalAset]);
 
-  // Navigasi cepat dengan filter
   const handleFilterKondisi = (kondisi) => {
     navigate(`/admin/aset?kondisi=${encodeURIComponent(kondisi)}`);
   };
 
   return (
     <div className="dash-canvas">
-      {/* ─── Executive View Header ─── */}
       <header className="dash-view-header">
         <div className="dash-view-titles">
           <h1 className="dash-view-title">Monitoring Kondisi Aset</h1>

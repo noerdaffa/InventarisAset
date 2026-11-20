@@ -21,10 +21,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/user/login" replace />} />
 
-        {/* Admin Auth Route */}
         <Route path="/admin/login" element={<AdminLogin />} />
 
-        {/* Admin Feature Routes */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
@@ -35,7 +33,6 @@ function App() {
           <Route path="monitoring" element={<Monitoring />} />
           <Route path="export" element={<ExportPdf />} />
 
-          {/* Backward compatibility for legacy /admin/dashboard/* paths */}
           <Route path="dashboard/aset" element={<Navigate to="/admin/aset" replace />} />
           <Route path="dashboard/peminjaman" element={<Navigate to="/admin/peminjaman" replace />} />
           <Route path="dashboard/pengembalian" element={<Navigate to="/admin/pengembalian" replace />} />
@@ -44,16 +41,13 @@ function App() {
           <Route path="dashboard/export" element={<Navigate to="/admin/export" replace />} />
         </Route>
 
-        {/* User Auth Routes */}
         <Route path="/user/login" element={<UserLogin />} />
         <Route path="/user/register" element={<UserRegister />} />
 
-        {/* Redirect /dashboard atau /user/dashboard ke /user/aset */}
         <Route path="/dashboard" element={<Navigate to="/user/aset" replace />} />
         <Route path="/user/dashboard" element={<Navigate to="/user/aset" replace />} />
         <Route path="/user/dashboard/*" element={<Navigate to="/user/aset" replace />} />
 
-        {/* User Feature Routes */}
         <Route path="/user" element={<UserLayout />}>
           <Route index element={<Navigate to="/user/aset" replace />} />
           <Route path="aset" element={<AsetList initialTab="aset" />} />

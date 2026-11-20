@@ -21,7 +21,6 @@ function drawHeader(doc, judul) {
   const startY = 24;
   const logoPath = path.join(process.cwd(), "public", "logo-bmkg.png");
 
-  // Logo BMKG resmi di sebelah kiri (sejajar margin kiri 40)
   if (fs.existsSync(logoPath)) {
     try {
       doc.image(logoPath, 40, startY, { width: 50 });
@@ -30,7 +29,6 @@ function drawHeader(doc, judul) {
     }
   }
 
-  // Teks Kop Surat Resmi Sesuai Format Kedinasan BMKG di PDF
   doc
     .fontSize(14)
     .font("Helvetica-Bold")
@@ -49,7 +47,6 @@ function drawHeader(doc, judul) {
       { align: "center", width: pageWidth - 80 }
     );
 
-  // Baris PO BOX & Website (dengan tautan URL berwarna biru sesuai format PDF resmi)
   const prefixText = "P. O. BOX 3540 JKT, Website : ";
   const urlText = "http://www.bmkg.go.id";
   doc.fontSize(9).font("Helvetica");
@@ -62,7 +59,6 @@ function drawHeader(doc, judul) {
     .fillColor("#0000ee")
     .text(urlText, { link: "http://www.bmkg.go.id", underline: false });
 
-  // Garis Pembatas Kop Surat (Garis horizontal tegas melintang penuh margin kiri ke kanan)
   const lineY = startY + 68;
   doc
     .strokeColor("#000000")
@@ -71,7 +67,6 @@ function drawHeader(doc, judul) {
     .lineTo(pageWidth - 40, lineY)
     .stroke();
 
-  // Judul Laporan & Waktu Cetak
   doc
     .font("Helvetica-Bold")
     .fontSize(11.5)
@@ -89,43 +84,147 @@ function drawHeader(doc, judul) {
 }
 
 function drawTable(doc, columns, rows) {
-  const startX = 40;
+  const pageWidth = doc.page.width;
+  const totalTableWidth = columns.reduce((a, c) => a + (c.width || 0), 0);
+  // Simetris: margin kiri dan kanan seimbang persis di tengah halaman (40 pt kiri & ~40.9 pt kanan)
+  const startX = Math.round((pageWidth - totalTableWidth) / 2);
   let y = doc.y;
-  const rowHeight = 20;
+  const headerHeight = 22;
   const pageBottom = doc.page.height - 55;
 
-  function drawRow(values, isHeader) {
+  function drawHeaderRow() {
+    doc.rect(startX, y, totalTableWidth, headerHeight).fill("#0d2342");
+    doc.font("Helvetica-Bold").fontSize(8).fillColor("#ffffff");
     let x = startX;
-    doc.fontSize(8).fillColor(isHeader ? "#ffffff" : "#222222");
-    if (isHeader) {
-      doc.rect(startX, y, columns.reduce((a, c) => a + c.width, 0), rowHeight).fill("#1e40af");
-      doc.fillColor("#ffffff");
-    }
-    columns.forEach((col, i) => {
-      doc.text(String(values[i] ?? "-"), x + 4, y + 6, { width: col.width - 8, ellipsis: true });
+    columns.forEach((col) => {
+      const padX = 4;
+      const textY = y + 6.5;
+      doc.text(col.label, x + padX, textY, {
+        width: col.width - (padX * 2),
+        align: col.align || "left",
+      });
+
+      // Garis vertikal pembatas kolom header
+      doc
+        .strokeColor("rgba(255, 255, 255, 0.2)")
+        .lineWidth(0.5)
+        .moveTo(x + col.width, y)
+        .lineTo(x + col.width, y + headerHeight)
+        .stroke();
+
       x += col.width;
     });
-    y += rowHeight;
+
+    // Garis horizontal bawah header
+    doc
+      .strokeColor("#081527")
+      .lineWidth(0.8)
+      .moveTo(startX, y + headerHeight)
+      .lineTo(startX + totalTableWidth, y + headerHeight)
+      .stroke();
+
+    // Garis vertikal tepi kiri header
+    doc
+      .strokeColor("#081527")
+      .lineWidth(0.5)
+      .moveTo(startX, y)
+      .lineTo(startX, y + headerHeight)
+      .stroke();
+
+    y += headerHeight;
   }
 
-  drawRow(columns.map((c) => c.label), true);
+  // Render header tabel awal
+  drawHeaderRow();
+
+  if (!rows || rows.length === 0) {
+    const emptyH = 30;
+    doc.rect(startX, y, totalTableWidth, emptyH).fill("#f8fafc");
+    doc.font("Helvetica-Oblique").fontSize(8.5).fillColor("#64748b");
+    doc.text("Tidak ada data aset yang sesuai dengan kriteria filter.", startX, y + 10, {
+      width: totalTableWidth,
+      align: "center",
+    });
+    doc.strokeColor("#e2e8f0").lineWidth(0.5).rect(startX, y, totalTableWidth, emptyH).stroke();
+    doc.y = y + emptyH + 12;
+    return;
+  }
 
   rows.forEach((row, idx) => {
-    if (y + rowHeight > pageBottom) {
-      doc.addPage({ layout: "landscape", margin: 40 });
+    // 1. Hitung tinggi baris secara dinamis agar teks panjang (misal Satker / Nama Barang) tidak menumpuk
+    doc.font("Helvetica").fontSize(7.5);
+    let maxCellH = 0;
+    columns.forEach((col, i) => {
+      const textVal = String(row[i] ?? "-");
+      const padX = 4;
+      const cellW = col.width - (padX * 2);
+      const cellH = doc.heightOfString(textVal, { width: cellW });
+      if (cellH > maxCellH) maxCellH = cellH;
+    });
+
+    // Tinggi baris adaptif dengan padding simetris dan batas minimal 20pt
+    const currentRowHeight = Math.max(20, Math.ceil(maxCellH + 9));
+
+    // 2. Buat halaman baru jika baris berikutnya melampaui batas cetak halaman
+    if (y + currentRowHeight > pageBottom) {
+      doc.addPage({ layout: "landscape", size: "A4", margin: 40 });
       y = 45;
-      drawRow(columns.map((c) => c.label), true);
+      drawHeaderRow();
     }
+
+    // 3. Zebra striping latar belakang baris genap
     if (idx % 2 === 1) {
-      doc.rect(startX, y, columns.reduce((a, c) => a + c.width, 0), rowHeight).fill("#f2f5fa");
+      doc.rect(startX, y, totalTableWidth, currentRowHeight).fill("#f8fafc");
     }
-    drawRow(row, false);
+
+    // 4. Render teks setiap kolom dengan perataan vertikal yang simetris
+    let x = startX;
+    columns.forEach((col, i) => {
+      const textVal = String(row[i] ?? "-");
+      const padX = 4;
+      const cellW = col.width - (padX * 2);
+      const textH = doc.heightOfString(textVal, { width: cellW });
+      const textY = y + Math.max(4.5, (currentRowHeight - textH) / 2);
+
+      doc.font("Helvetica").fontSize(7.5).fillColor("#1e293b");
+      doc.text(textVal, x + padX, textY, {
+        width: cellW,
+        align: col.align || "left",
+      });
+
+      // Garis vertikal pembatas kolom
+      doc
+        .strokeColor("#e2e8f0")
+        .lineWidth(0.5)
+        .moveTo(x + col.width, y)
+        .lineTo(x + col.width, y + currentRowHeight)
+        .stroke();
+
+      x += col.width;
+    });
+
+    // Garis horizontal pembatas bawah baris
+    doc
+      .strokeColor("#e2e8f0")
+      .lineWidth(0.5)
+      .moveTo(startX, y + currentRowHeight)
+      .lineTo(startX + totalTableWidth, y + currentRowHeight)
+      .stroke();
+
+    // Garis vertikal tepi kiri tabel
+    doc
+      .strokeColor("#e2e8f0")
+      .lineWidth(0.5)
+      .moveTo(startX, y)
+      .lineTo(startX, y + currentRowHeight)
+      .stroke();
+
+    y += currentRowHeight;
   });
 
-  doc.y = y + 10;
+  doc.y = y + 12;
 }
 
-// GET /api/export/aset/pdf -> export daftar aset (mendukung filter yang sama dgn /api/aset)
 router.get("/aset/pdf", async (req, res) => {
   try {
     const { search = "", kondisi = "", status_bmn = "", nama_satker = "", bulan = "" } = req.query;
@@ -198,15 +297,15 @@ router.get("/aset/pdf", async (req, res) => {
     drawTable(
       doc,
       [
-        { label: "Kode Barang", width: 90 },
-        { label: "NUP", width: 40 },
-        { label: "Nama Barang", width: 150 },
-        { label: "Satker", width: 130 },
-        { label: "Merk/Tipe", width: 110 },
-        { label: "Kondisi", width: 70 },
-        { label: "Status BMN", width: 90 },
-        { label: "Tgl Perolehan", width: 80 },
-        { label: "Nilai Perolehan", width: 90 },
+        { label: "Kode Barang", width: 68, align: "left" },
+        { label: "NUP", width: 28, align: "center" },
+        { label: "Nama Barang", width: 135, align: "left" },
+        { label: "Satker", width: 170, align: "left" },
+        { label: "Merk/Tipe", width: 80, align: "left" },
+        { label: "Kondisi", width: 55, align: "center" },
+        { label: "Status BMN", width: 65, align: "center" },
+        { label: "Tgl Perolehan", width: 68, align: "center" },
+        { label: "Nilai Perolehan", width: 92, align: "right" },
       ],
       rows.map((a) => [
         a.kode_barang,
@@ -223,9 +322,13 @@ router.get("/aset/pdf", async (req, res) => {
 
     // Stamping Catatan Kaki BSrE resmi BMKG & Nomor Halaman pada setiap lembar
     const range = doc.bufferedPageRange();
+    const totalPages = range.count;
     const pageWidth = doc.page.width;
-    for (let i = range.start; i < range.start + range.count; i++) {
+    for (let i = range.start; i < range.start + totalPages; i++) {
       doc.switchToPage(i);
+      const oldBottom = doc.page.margins.bottom;
+      doc.page.margins.bottom = 0; // Cegah auto-break / penambahan halaman phantom tak diinginkan
+
       const footerY = doc.page.height - 35;
       doc
         .strokeColor("#000000")
@@ -242,19 +345,22 @@ router.get("/aset/pdf", async (req, res) => {
           "Dokumen ini telah ditandatangani secara elektronik menggunakan sertifikat elektronik yang diterbitkan oleh Balai Besar Sertifikasi Elektronik (BSrE), Badan Siber dan Sandi Negara (BSSN).",
           40,
           footerY,
-          { align: "center", width: pageWidth - 80 }
+          { align: "center", width: pageWidth - 80, lineBreak: false }
         );
 
-      if (range.count > 1) {
+      if (totalPages > 1) {
         doc
           .font("Helvetica")
           .fontSize(8)
           .fillColor("#555555")
-          .text(`Halaman ${i + 1} dari ${range.count}`, 40, footerY + 11, {
+          .text(`Halaman ${i + 1} dari ${totalPages}`, 40, footerY + 11, {
             align: "right",
             width: pageWidth - 80,
+            lineBreak: false,
           });
       }
+
+      doc.page.margins.bottom = oldBottom;
     }
 
     doc.end();

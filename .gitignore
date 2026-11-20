@@ -21,6 +21,8 @@
 .claude/
 .agent/
 agent/
+antigravity-fixer/
+
 skills-lock.json
 npm-debug.log*
 yarn-debug.log*

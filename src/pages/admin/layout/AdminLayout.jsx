@@ -160,7 +160,6 @@ function AdminLayout() {
 
   return (
     <div className="adm-shell">
-      {/* ─── Compact Modern Sidebar ─── */}
       <aside className={`adm-sidebar ${sidebarOpen ? "" : "collapsed"}`}>
         <div className="adm-sidebar-brand">
           <div

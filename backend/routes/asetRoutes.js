@@ -3,7 +3,6 @@ const router = express.Router();
 const db = require("../db");
 const promiseDb = db.promisePool;
 
-// Helper: catat riwayat perubahan aset
 async function catatRiwayat(asetId, adminId, aktivitas, keterangan, dataLama, dataBaru) {
   try {
     await promiseDb.query(`
@@ -376,7 +375,6 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// POST /api/aset -> tambah aset baru
 router.post("/", async (req, res) => {
   try {
     const {
@@ -467,7 +465,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PUT /api/aset/:id -> edit aset
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;

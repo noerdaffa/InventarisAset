@@ -31,7 +31,6 @@ function ImportData() {
   const [riwayat, setRiwayat] = useState([]);
   const [showErrorList, setShowErrorList] = useState(false);
 
-  // Modal / drawer untuk melihat aset dari batch tertentu
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [batchAssets, setBatchAssets] = useState([]);
   const [loadingBatchAssets, setLoadingBatchAssets] = useState(false);

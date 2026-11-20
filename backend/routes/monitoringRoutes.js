@@ -3,7 +3,6 @@ const router = express.Router();
 const db = require("../db");
 const promiseDb = db.promisePool;
 
-// GET /api/monitoring/summary -> ringkasan statistik untuk dashboard & monitoring
 router.get("/summary", async (req, res) => {
   try {
     let totalAsetVal = 0;
@@ -12,7 +11,6 @@ router.get("/summary", async (req, res) => {
     let perStatusBmn = [];
     let perSatker = [];
 
-    // 1. Total Aset
     try {
       const [asetRows] = await promiseDb.query("SELECT COUNT(*) AS total FROM aset");
       totalAsetVal = Number(asetRows?.[0]?.total) || 0;
@@ -20,7 +18,6 @@ router.get("/summary", async (req, res) => {
       console.warn("Query totalAset warning:", e.message);
     }
 
-    // 2. Total Nilai Perolehan
     try {
       const [nilaiRows] = await promiseDb.query(
         "SELECT COALESCE(SUM(nilai_perolehan), 0) AS total FROM aset"
@@ -30,7 +27,6 @@ router.get("/summary", async (req, res) => {
       console.warn("Query totalNilai warning:", e.message);
     }
 
-    // 3. Distribusi per Kondisi
     try {
       const [kondisiRows] = await promiseDb.query(
         `SELECT COALESCE(kondisi, 'Belum diisi') AS kondisi, COUNT(*) AS jumlah
@@ -41,7 +37,6 @@ router.get("/summary", async (req, res) => {
       console.warn("Query perKondisi warning:", e.message);
     }
 
-    // 4. Distribusi per Status BMN
     try {
       const [statusRows] = await promiseDb.query(
         `SELECT COALESCE(status_bmn, 'Belum diisi') AS status_bmn, COUNT(*) AS jumlah
@@ -52,7 +47,6 @@ router.get("/summary", async (req, res) => {
       console.warn("Query perStatusBmn warning:", e.message);
     }
 
-    // 5. Distribusi per Satker
     try {
       const [satkerRows] = await promiseDb.query(
         `SELECT COALESCE(nama_satker, 'Belum diisi') AS nama_satker, COUNT(*) AS jumlah

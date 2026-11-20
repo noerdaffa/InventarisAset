@@ -93,9 +93,7 @@ export default function KelolaAset({ initialTab = "aset" }) {
     }
   };
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // 1. DATA INVENTARIS ASET (Tab 1)
-  // ════════════════════════════════════════════════════════════════════════════
+ 
   const [rows, setRows] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [search, setSearch] = useState("");

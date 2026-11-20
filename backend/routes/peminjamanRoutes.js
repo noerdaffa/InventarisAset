@@ -266,7 +266,6 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// ─── POST /api/peminjaman → buat pengajuan peminjaman (User atau Admin langsung) ───
 router.post("/", async (req, res) => {
   const {
     nip,
@@ -362,7 +361,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// ─── PUT /api/peminjaman/:id/setujui → admin setujui permohonan ───────────────
 router.put("/:id/setujui", async (req, res) => {
   try {
     const [rows] = await promiseDb.query("SELECT * FROM peminjaman WHERE id = ?", [req.params.id]);
@@ -377,7 +375,6 @@ router.put("/:id/setujui", async (req, res) => {
   }
 });
 
-// ─── PUT /api/peminjaman/:id/tolak → admin tolak permohonan ───────────────────
 router.put("/:id/tolak", async (req, res) => {
   const { alasan } = req.body;
   try {
@@ -443,7 +440,6 @@ router.put("/:id/dipinjam", async (req, res) => {
   }
 });
 
-// ─── PUT /api/peminjaman/:id/ajukan-kembali → FITUR USER SUBMIT PENGEMBALIAN ASET ───
 router.put("/:id/ajukan-kembali", async (req, res) => {
   const {
     nip,
