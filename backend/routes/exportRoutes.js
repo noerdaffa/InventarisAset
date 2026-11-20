@@ -225,6 +225,78 @@ function drawTable(doc, columns, rows) {
   doc.y = y + 12;
 }
 
+function drawSignature(doc) {
+  const pageBottom = doc.page.height - 55;
+  const blockHeight = 135;
+  let y = doc.y + 14;
+
+  if (y + blockHeight > pageBottom) {
+    doc.addPage({ layout: "landscape", size: "A4", margin: 40 });
+    y = 45;
+  }
+
+  const blockW = 260;
+  // Rata kanan sejajar garis batas tepi kanan tabel (startX + totalTableWidth = 40 + 761 = 801 pt)
+  const blockX = 801 - blockW;
+  const qrPath = path.join(process.cwd(), "public", "ttd-qr.png");
+
+  const BULAN_NAMES = [
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+  ];
+  const now = new Date();
+  const tglCetak = `Jakarta, ${now.getDate()} ${BULAN_NAMES[now.getMonth()]} ${now.getFullYear()}`;
+
+  doc
+    .font("Helvetica")
+    .fontSize(9)
+    .fillColor("#1e293b")
+    .text(tglCetak, blockX, y, { width: blockW, align: "center" });
+  y += 14;
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(9)
+    .fillColor("#0f172a")
+    .text("Kepala Biro Sumber Daya Manusia dan Organisasi", blockX, y, {
+      width: blockW,
+      align: "center",
+    });
+  y += doc.heightOfString("Kepala Biro Sumber Daya Manusia dan Organisasi", { width: blockW }) + 6;
+
+  const qrSize = 58;
+  const qrX = blockX + (blockW - qrSize) / 2;
+  if (fs.existsSync(qrPath)) {
+    try {
+      doc.image(qrPath, qrX, y, { width: qrSize, height: qrSize });
+      y += qrSize + 8;
+    } catch (e) {
+      y += 50;
+    }
+  } else {
+    y += 50;
+  }
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(9.5)
+    .fillColor("#0d2342")
+    .text("Mohamad Muslihhuddin, SH., MH.", blockX, y, {
+      width: blockW,
+      align: "center",
+      underline: true,
+    });
+  y += 13;
+
+  doc
+    .font("Helvetica")
+    .fontSize(8.5)
+    .fillColor("#334155")
+    .text("NIP. 197407101999031001", blockX, y, { width: blockW, align: "center" });
+
+  doc.y = y + 10;
+}
+
 router.get("/aset/pdf", async (req, res) => {
   try {
     const { search = "", kondisi = "", status_bmn = "", nama_satker = "", bulan = "" } = req.query;
@@ -319,6 +391,9 @@ router.get("/aset/pdf", async (req, res) => {
         formatRupiah(a.nilai_perolehan),
       ])
     );
+
+    // Bagian Tanggal & Tanda Tangan Elektronik (QR Code BSrE BMKG)
+    drawSignature(doc);
 
     // Stamping Catatan Kaki BSrE resmi BMKG & Nomor Halaman pada setiap lembar
     const range = doc.bufferedPageRange();
