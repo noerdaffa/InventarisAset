@@ -4,6 +4,101 @@ import api from "../../../api";
 import { formatRupiah, formatTanggal, slugBadge } from "../../../utils/format";
 import "./AsetList.css";
 
+export function getAsetStockInfo(aset) {
+  if (!aset) {
+    return {
+      available: false,
+      stok: 0,
+      stokLabel: "0 Unit",
+      badgeText: "Tidak Tersedia",
+      btnText: "Terkunci",
+      reason: "Data aset tidak valid",
+    };
+  }
+
+  // 1. Sedang aktif dipinjam
+  if (aset.status_pinjam === "DIPINJAM") {
+    return {
+      available: false,
+      stok: 0,
+      stokLabel: "0 Unit (Dipinjam)",
+      badgeText: "Sedang Dipinjam",
+      btnText: "Dipinjam",
+      reason: "Aset saat ini sedang aktif dipinjam oleh pegawai lain",
+    };
+  }
+
+  // 2. Disetujui admin dan menunggu serah terima fisik
+  if (aset.status_pinjam === "DISETUJUI") {
+    return {
+      available: false,
+      stok: 0,
+      stokLabel: "0 Unit (Dipesan)",
+      badgeText: "Disetujui",
+      btnText: "Siap Diambil",
+      reason: "Permohonan pinjam telah disetujui admin dan menunggu pengambilan fisik",
+    };
+  }
+
+  // 3. Menunggu persetujuan permohonan oleh admin
+  if (aset.status_pinjam === "MENUNGGU") {
+    return {
+      available: false,
+      stok: 0,
+      stokLabel: "0 Unit (Diajukan)",
+      badgeText: "Menunggu Approval",
+      btnText: "Menunggu Konfirmasi",
+      reason: "Aset sedang dalam proses permohonan peminjaman",
+    };
+  }
+
+  // 4. Dalam proses pemeriksaan dan verifikasi fisik pengembalian
+  if (aset.status_pinjam === "MENUNGGU_PENGEMBALIAN") {
+    return {
+      available: false,
+      stok: 0,
+      stokLabel: "0 Unit (Kembali)",
+      badgeText: "Proses Kembali",
+      btnText: "Verifikasi Kembali",
+      reason: "Aset sedang dalam proses verifikasi pengembalian fisik",
+    };
+  }
+
+  // 5. Kondisi fisik rusak berat
+  if (aset.kondisi === "Rusak Berat") {
+    return {
+      available: false,
+      stok: 0,
+      stokLabel: "0 Unit (Rusak)",
+      badgeText: "Rusak Berat",
+      btnText: "Tidak Layak Pinjam",
+      reason: "Aset mengalami kerusakan berat dan tidak dapat digunakan",
+    };
+  }
+
+  // 6. Status BMN tidak digunakan
+  if (aset.status_bmn === "Tidak Digunakan") {
+    return {
+      available: false,
+      stok: 0,
+      stokLabel: "0 Unit (Nonaktif)",
+      badgeText: "Tidak Digunakan",
+      btnText: "BMN Nonaktif",
+      reason: "Status BMN tidak dalam pemakaian operasional",
+    };
+  }
+
+  // Stok Tersedia (1 Unit)
+  return {
+    available: true,
+    stok: 1,
+    stokLabel: "1 Unit Tersedia",
+    badgeText: "Tersedia",
+    btnText: "Pinjam",
+    reason: "Stok tersedia, siap diajukan untuk peminjaman",
+  };
+}
+
 function AsetList({ userData: propUserData, initialTab = "aset" }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,6 +117,7 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
     kondisi: "",
     status_bmn: "",
     nama_satker: "",
+    ketersediaan: "",
   });
   const [filterOptions, setFilterOptions] = useState({
     kondisi: [],
@@ -118,6 +214,7 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
       kondisi: "",
       status_bmn: "",
       nama_satker: "",
+      ketersediaan: "",
     });
   };
 
@@ -134,12 +231,13 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
   };
 
   const isFiltered =
-    searchTerm || filters.kondisi || filters.status_bmn || filters.nama_satker;
+    searchTerm || filters.kondisi || filters.status_bmn || filters.nama_satker || filters.ketersediaan;
 
   const activeFilterCount = [
     filters.kondisi,
     filters.status_bmn,
     filters.nama_satker,
+    filters.ketersediaan,
   ].filter(Boolean).length;
 
   const fetchRiwayat = useCallback(async () => {
@@ -159,6 +257,11 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
   }, [activeTab, fetchRiwayat]);
 
   const openPinjam = (aset) => {
+    const stockInfo = getAsetStockInfo(aset);
+    if (!stockInfo.available) {
+      alert(`Peminjaman tidak dapat diajukan: ${stockInfo.reason}`);
+      return;
+    }
     const today = new Date().toISOString().slice(0, 10);
     setPinjamForm({ tanggal_pinjam: today, tanggal_rencana_kembali: "", keterangan: "" });
     setPinjamMsg({ text: "", type: "" });
@@ -167,6 +270,12 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
 
   const submitPinjam = async (e) => {
     e.preventDefault();
+    if (!pinjamModal) return;
+    const stockInfo = getAsetStockInfo(pinjamModal);
+    if (!stockInfo.available) {
+      setPinjamMsg({ text: `Permintaan ditolak: ${stockInfo.reason}`, type: "error" });
+      return;
+    }
     if (!pinjamForm.tanggal_pinjam) {
       setPinjamMsg({ text: "Tanggal pinjam wajib diisi.", type: "error" });
       return;
@@ -187,6 +296,7 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
         setActiveTab("peminjaman");
         navigate("/user/peminjaman");
         fetchRiwayat();
+        fetchAsets(pagination.page);
       }, 1500);
     } catch (err) {
       setPinjamMsg({ text: err.response?.data?.message || "Gagal mengajukan peminjaman.", type: "error" });
@@ -388,6 +498,19 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
             </select>
           </div>
 
+          <div className="filter-select-wrapper">
+            <select
+              name="ketersediaan"
+              value={filters.ketersediaan}
+              onChange={handleFilterChange}
+              className={`filter-select ${filters.ketersediaan ? "active" : ""}`}
+            >
+              <option value="">Semua Ketersediaan Stok</option>
+              <option value="tersedia">Stok Tersedia (Siap Pinjam)</option>
+              <option value="kosong">Stok Kosong / Dipinjam</option>
+            </select>
+          </div>
+
           <div className="filter-select-wrapper filter-satker-wrapper">
             <select
               name="nama_satker"
@@ -465,7 +588,7 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
                   <th>Status Penggunaan</th>
                   <th>Tgl Perolehan</th>
                   <th style={{ textAlign: "right" }}>Nilai Perolehan</th>
-                  <th style={{ textAlign: "center" }}>Pinjam</th>
+                  <th style={{ textAlign: "center", minWidth: 140 }}>Status Stok &amp; Pinjam</th>
                 </tr>
               </thead>
               <tbody>
@@ -552,35 +675,79 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
                       {formatRupiah(aset.nilai_perolehan)}
                     </td>
                     <td style={{ textAlign: "center" }}>
-                      {aset.status_pinjam === "DIPINJAM" ? (
-                        <span style={{
-                          display: "inline-block", padding: "4px 10px", fontSize: 11.5, fontWeight: 700, borderRadius: 20,
-                          background: "#ede9fe", color: "#6d28d9", border: "1px solid #ddd6fe", whiteSpace: "nowrap"
-                        }}>
-                          Sedang Dipinjam
-                        </span>
-                      ) : aset.status_pinjam === "DISETUJUI" ? (
-                        <span style={{
-                          display: "inline-block", padding: "4px 10px", fontSize: 11.5, fontWeight: 700, borderRadius: 20,
-                          background: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd", whiteSpace: "nowrap"
-                        }}>
-                          Disetujui
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => openPinjam(aset)}
-                          title="Ajukan peminjaman aset ini"
-                          style={{
-                            padding: "4px 12px", fontSize: 12, fontWeight: 700, borderRadius: 20,
-                            border: "1px solid #0284c7", background: "#e0f2fe", color: "#0284c7",
-                            cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s",
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "#0284c7"; e.currentTarget.style.color = "#fff"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "#e0f2fe"; e.currentTarget.style.color = "#0284c7"; }}
-                        >
-                          + Pinjam
-                        </button>
-                      )}
+                      {(() => {
+                        const stockInfo = getAsetStockInfo(aset);
+                        if (!stockInfo.available) {
+                          return (
+                            <div className="stok-action-cell">
+                              <span
+                                className="badge-stok stok-kosong"
+                                title={stockInfo.reason}
+                              >
+                                <span className="stok-dot red" aria-hidden="true"></span>
+                                <span>Stok: 0 (Kosong)</span>
+                              </span>
+                              <button
+                                type="button"
+                                disabled={true}
+                                aria-disabled="true"
+                                className="btn-pinjam-locked"
+                                title={`Tombol dikunci: ${stockInfo.reason}`}
+                              >
+                                <svg
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  aria-hidden="true"
+                                >
+                                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                                <span>{stockInfo.btnText}</span>
+                              </button>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="stok-action-cell">
+                            <span
+                              className="badge-stok stok-tersedia"
+                              title="Stok tersedia untuk dipinjam"
+                            >
+                              <span className="stok-dot green" aria-hidden="true"></span>
+                              <span>Stok: 1 (Tersedia)</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openPinjam(aset)}
+                              className="btn-pinjam-active"
+                              title="Ajukan permohonan peminjaman aset ini"
+                            >
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                              >
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                              </svg>
+                              <span>+ Pinjam</span>
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))}

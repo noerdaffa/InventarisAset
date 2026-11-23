@@ -383,7 +383,7 @@ export default function KelolaAset({ initialTab = "aset" }) {
             title={`Pengembalian diajukan oleh ${aset.peminjam_nama || aset.peminjam_nip}`}
           >
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b" }} />
-            Diajukan User (Verifikasi)
+            Stok Kosong (Verifikasi)
           </span>
           <div style={{ marginTop: 4 }}>
             <button
@@ -403,7 +403,7 @@ export default function KelolaAset({ initialTab = "aset" }) {
         <div>
           <span className="badge-pinjam-dipinjam" title={`Dipinjam oleh ${aset.peminjam_nama} (${aset.peminjam_nip})`}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#7c3aed" }} />
-            Dipinjam: {aset.peminjam_nama || aset.peminjam_nip}
+            Stok Kosong (Dipinjam)
           </span>
           <div style={{ marginTop: 4 }}>
             <button
@@ -421,14 +421,60 @@ export default function KelolaAset({ initialTab = "aset" }) {
       return (
         <span className="badge-pinjam-disetujui">
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#0284c7" }} />
-          Disetujui (Siap Diambil)
+          Stok Kosong (Siap Diambil)
+        </span>
+      );
+    }
+    if (aset.status_pinjam === "MENUNGGU") {
+      return (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            padding: "3px 10px",
+            borderRadius: 20,
+            fontSize: 11.5,
+            fontWeight: 700,
+            background: "#fff7ed",
+            color: "#c2410c",
+            border: "1px solid #fed7aa",
+            whiteSpace: "nowrap",
+          }}
+          title={`Permohonan diajukan oleh ${aset.peminjam_nama || aset.peminjam_nip}`}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ea580c" }} />
+          Stok Kosong (Menunggu Approval)
+        </span>
+      );
+    }
+    if (aset.kondisi === "Rusak Berat") {
+      return (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            padding: "3px 10px",
+            borderRadius: 20,
+            fontSize: 11.5,
+            fontWeight: 700,
+            background: "#fee2e2",
+            color: "#991b1b",
+            border: "1px solid #fecaca",
+            whiteSpace: "nowrap",
+          }}
+          title="Kondisi rusak berat, tidak tersedia untuk peminjaman"
+        >
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#dc2626" }} />
+          Stok Kosong (Rusak Berat)
         </span>
       );
     }
     return (
       <span className="badge-pinjam-tersedia">
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a" }} />
-        Tersedia
+        Stok: 1 (Tersedia)
       </span>
     );
   };
@@ -607,7 +653,7 @@ export default function KelolaAset({ initialTab = "aset" }) {
                   <th>Kodefikasi BMN</th>
                   <th>Satuan Kerja</th>
                   <th>Kondisi Fisik</th>
-                  <th>Status Peminjaman</th>
+                  <th>Status Stok &amp; Peminjaman</th>
                   <th style={{ textAlign: "right" }}>Nilai Perolehan</th>
                   <th style={{ textAlign: "center", width: 90 }}>Aksi</th>
                 </tr>

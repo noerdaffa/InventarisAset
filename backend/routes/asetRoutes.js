@@ -150,11 +150,11 @@ router.get("/", async (req, res) => {
     }
     if (ketersediaan === "tersedia") {
       where.push(
-        "NOT EXISTS (SELECT 1 FROM detail_peminjaman dp JOIN peminjaman p ON dp.peminjaman_id = p.id WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN'))"
+        "(a.kondisi IS NULL OR a.kondisi != 'Rusak Berat') AND (a.status_bmn IS NULL OR a.status_bmn != 'Tidak Digunakan') AND NOT EXISTS (SELECT 1 FROM detail_peminjaman dp JOIN peminjaman p ON dp.peminjaman_id = p.id WHERE dp.aset_id = a.id AND p.status IN ('MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN'))"
       );
-    } else if (ketersediaan === "dipinjam") {
+    } else if (ketersediaan === "kosong" || ketersediaan === "dipinjam") {
       where.push(
-        "EXISTS (SELECT 1 FROM detail_peminjaman dp JOIN peminjaman p ON dp.peminjaman_id = p.id WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN'))"
+        "(a.kondisi = 'Rusak Berat' OR a.status_bmn = 'Tidak Digunakan' OR EXISTS (SELECT 1 FROM detail_peminjaman dp JOIN peminjaman p ON dp.peminjaman_id = p.id WHERE dp.aset_id = a.id AND p.status IN ('MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')))"
       );
     }
 
@@ -182,7 +182,7 @@ router.get("/", async (req, res) => {
         SELECT p.status
         FROM detail_peminjaman dp
         JOIN peminjaman p ON dp.peminjaman_id = p.id
-        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        WHERE dp.aset_id = a.id AND p.status IN ('MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
         ORDER BY p.id DESC LIMIT 1
       ) AS status_pinjam,
       (
@@ -190,42 +190,42 @@ router.get("/", async (req, res) => {
         FROM detail_peminjaman dp
         JOIN peminjaman p ON dp.peminjaman_id = p.id
         LEFT JOIN pegawai pg ON p.nip = pg.nip
-        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        WHERE dp.aset_id = a.id AND p.status IN ('MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
         ORDER BY p.id DESC LIMIT 1
       ) AS peminjam_nama,
       (
         SELECT p.nip
         FROM detail_peminjaman dp
         JOIN peminjaman p ON dp.peminjaman_id = p.id
-        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        WHERE dp.aset_id = a.id AND p.status IN ('MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
         ORDER BY p.id DESC LIMIT 1
       ) AS peminjam_nip,
       (
         SELECT p.id
         FROM detail_peminjaman dp
         JOIN peminjaman p ON dp.peminjaman_id = p.id
-        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        WHERE dp.aset_id = a.id AND p.status IN ('MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
         ORDER BY p.id DESC LIMIT 1
       ) AS peminjaman_id,
       (
         SELECT p.tanggal_pinjam
         FROM detail_peminjaman dp
         JOIN peminjaman p ON dp.peminjaman_id = p.id
-        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        WHERE dp.aset_id = a.id AND p.status IN ('MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
         ORDER BY p.id DESC LIMIT 1
       ) AS pinjam_tanggal,
       (
         SELECT p.tanggal_rencana_kembali
         FROM detail_peminjaman dp
         JOIN peminjaman p ON dp.peminjaman_id = p.id
-        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        WHERE dp.aset_id = a.id AND p.status IN ('MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
         ORDER BY p.id DESC LIMIT 1
       ) AS pinjam_rencana_kembali,
       (
         SELECT p.tanggal_kembali
         FROM detail_peminjaman dp
         JOIN peminjaman p ON dp.peminjaman_id = p.id
-        WHERE dp.aset_id = a.id AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+        WHERE dp.aset_id = a.id AND p.status IN ('MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
         ORDER BY p.id DESC LIMIT 1
       ) AS pinjam_tanggal_kembali
     `;
@@ -557,11 +557,11 @@ router.delete("/:id", async (req, res) => {
       return res.status(404).json({ success: false, message: "Aset tidak ditemukan" });
     }
 
-    // Cek apakah aset sedang dalam peminjaman aktif
+    // Cek apakah aset sedang dalam peminjaman aktif atau antrean permohonan
     const [activeLoan] = await promiseDb.query(
       `SELECT dp.id FROM detail_peminjaman dp
        JOIN peminjaman p ON dp.peminjaman_id = p.id
-       WHERE dp.aset_id = ? AND p.status IN ('DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
+       WHERE dp.aset_id = ? AND p.status IN ('MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'MENUNGGU_PENGEMBALIAN')
        LIMIT 1`,
       [id]
     );
@@ -569,7 +569,7 @@ router.delete("/:id", async (req, res) => {
     if (activeLoan.length > 0) {
       return res.status(400).json({
         success: false,
-        message: "Aset tidak dapat dihapus karena sedang dalam peminjaman aktif",
+        message: "Aset tidak dapat dihapus karena sedang dalam peminjaman atau permohonan aktif",
       });
     }
 

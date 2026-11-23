@@ -227,18 +227,11 @@ function Dashboard() {
           <p className="dash-metric-note" style={{ minHeight: "auto", marginBottom: 12 }}>
             Akumulasi nilai kapitalisasi perolehan seluruh barang milik negara dinas BMKG.
           </p>
-          <div className="dash-metric-valuation" style={{ marginTop: "auto", marginBottom: 0 }}>
-            <span>Status Akuntansi:</span>
-            <strong>Terkapitalisasi Resmi di Neraca BMN</strong>
-          </div>
-        </div>
+         </div>
       </section>
 
-      {/* ─── Main Two-Column Hub (60% / 40%) ─── */}
       <div className="dash-layout-split">
-        {/* Left Column (60%): Sirkulasi Terkini + Quick Shortcuts */}
         <div className="dash-col-primary">
-          {/* Real Live Activity: Sirkulasi Peminjaman Terkini */}
           <section className="dash-panel-box">
             <div className="dash-panel-titlebar">
               <div>
@@ -255,7 +248,7 @@ function Dashboard() {
 
             <div className="dash-table-container">
               {loading ? (
-                <div className="dash-state-pad">Memuat data sirkulasi aset...</div>
+                <div className="dash-state-pad">Memuat data aset...</div>
               ) : recentLoans.length === 0 ? (
                 <div className="dash-state-pad empty">
                   <p>Belum ada riwayat permohonan peminjaman tercatat.</p>

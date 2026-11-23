@@ -297,21 +297,38 @@ router.post("/", async (req, res) => {
       );
     }
 
-    // Periksa apakah ada aset yang sedang dipinjam
+    // Periksa apakah ada aset yang sedang dipinjam atau dalam proses pengajuan (stok kosong)
     const placeholders = aset_ids.map(() => "?").join(",");
     const [dipinjam] = await conn.query(
-      `SELECT a.id, a.nama_barang FROM aset a
+      `SELECT a.id, a.nama_barang, p.status FROM aset a
        JOIN detail_peminjaman dp ON dp.aset_id = a.id
        JOIN peminjaman p ON dp.peminjaman_id = p.id
-       WHERE a.id IN (${placeholders}) AND p.status IN ('DISETUJUI','DIPINJAM','MENUNGGU_PENGEMBALIAN')`,
+       WHERE a.id IN (${placeholders}) AND p.status IN ('MENUNGGU','DISETUJUI','DIPINJAM','MENUNGGU_PENGEMBALIAN')`,
       aset_ids
     );
 
     if (dipinjam.length > 0) {
       await conn.rollback();
+      const namaList = [...new Set(dipinjam.map((a) => a.nama_barang))].join(", ");
       return res.status(409).json({
         success: false,
-        message: `Aset berikut sedang dalam peminjaman aktif: ${dipinjam.map((a) => a.nama_barang).join(", ")}`,
+        message: `Aset "${namaList}" tidak dapat dipinjam karena stok kosong (sedang aktif dipinjam atau dalam antrean permohonan lain).`,
+      });
+    }
+
+    // Validasi kondisi fisik dan status kelayakan aset
+    const [unfitAssets] = await conn.query(
+      `SELECT id, nama_barang, kondisi, status_bmn FROM aset
+       WHERE id IN (${placeholders}) AND (kondisi = 'Rusak Berat' OR status_bmn = 'Tidak Digunakan')`,
+      aset_ids
+    );
+
+    if (unfitAssets.length > 0) {
+      await conn.rollback();
+      const namaUnfit = unfitAssets.map((a) => `${a.nama_barang} (${a.kondisi || a.status_bmn})`).join(", ");
+      return res.status(400).json({
+        success: false,
+        message: `Aset berikut tidak layak untuk dipinjam: ${namaUnfit}`,
       });
     }
 
