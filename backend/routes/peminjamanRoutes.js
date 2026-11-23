@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 const promiseDb = db.promisePool;
+const { buatNotifikasi } = require("./notifikasiRoutes");
 
 // Self-healing schema: pastikan tabel detail_peminjaman dan kolom pendukung siap
 let isPeminjamanSchemaReady = false;
@@ -386,6 +387,25 @@ router.put("/:id/setujui", async (req, res) => {
       return res.status(400).json({ success: false, message: "Hanya peminjaman berstatus MENUNGGU yang dapat disetujui" });
 
     await promiseDb.query("UPDATE peminjaman SET status = 'DISETUJUI' WHERE id = ?", [req.params.id]);
+
+    // Kirim notifikasi persetujuan peminjaman ke user
+    try {
+      const [asetRows] = await promiseDb.query(
+        "SELECT a.nama_barang FROM detail_peminjaman dp JOIN aset a ON dp.aset_id = a.id WHERE dp.peminjaman_id = ?",
+        [req.params.id]
+      );
+      const namaAset = asetRows.map((a) => a.nama_barang).join(", ") || "Aset Dinas";
+      await buatNotifikasi(promiseDb, {
+        nip: rows[0].nip,
+        judul: "Permohonan Peminjaman Disetujui",
+        pesan: `Permohonan peminjaman aset "${namaAset}" Anda telah disetujui oleh admin BMN. Silakan menghubungi pengelola BMN untuk serah terima unit barang.`,
+        tipe: "DISETUJUI",
+        tautan: "/user/peminjaman",
+      });
+    } catch (e) {
+      console.warn("Gagal membuat notifikasi setujui:", e.message);
+    }
+
     res.json({ success: true, message: "Peminjaman berhasil disetujui" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Gagal menyetujui peminjaman", error: err.message });
@@ -408,6 +428,25 @@ router.put("/:id/tolak", async (req, res) => {
       "UPDATE peminjaman SET status = 'DITOLAK', keterangan = ? WHERE id = ?",
       [newKeterangan, req.params.id]
     );
+
+    // Kirim notifikasi penolakan ke user
+    try {
+      const [asetRows] = await promiseDb.query(
+        "SELECT a.nama_barang FROM detail_peminjaman dp JOIN aset a ON dp.aset_id = a.id WHERE dp.peminjaman_id = ?",
+        [req.params.id]
+      );
+      const namaAset = asetRows.map((a) => a.nama_barang).join(", ") || "Aset Dinas";
+      await buatNotifikasi(promiseDb, {
+        nip: rows[0].nip,
+        judul: "Permohonan Peminjaman Ditolak",
+        pesan: `Permohonan peminjaman aset "${namaAset}" belum dapat disetujui.${alasan ? " Catatan: " + alasan : ""}`,
+        tipe: "DITOLAK",
+        tautan: "/user/peminjaman",
+      });
+    } catch (e) {
+      console.warn("Gagal membuat notifikasi tolak:", e.message);
+    }
+
     res.json({ success: true, message: "Permohonan peminjaman telah ditolak" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Gagal menolak peminjaman", error: err.message });
@@ -516,6 +555,24 @@ router.put("/:id/ajukan-kembali", async (req, res) => {
       }
     }
 
+    // Kirim notifikasi pengajuan pengembalian ke user
+    try {
+      const [asetRows] = await conn.query(
+        "SELECT a.nama_barang FROM detail_peminjaman dp JOIN aset a ON dp.aset_id = a.id WHERE dp.peminjaman_id = ?",
+        [req.params.id]
+      );
+      const namaAset = asetRows.map((a) => a.nama_barang).join(", ") || "Aset Dinas";
+      await buatNotifikasi(conn, {
+        nip: rows[0].nip,
+        judul: "Pengajuan Pengembalian Aset Dicatat",
+        pesan: `Pengajuan pengembalian untuk aset "${namaAset}" telah berhasil dicatat pada ${tglKembali}. Silakan segera serahkan unit fisik barang ke pengelola BMN untuk verifikasi fisik.`,
+        tipe: "PENGEMBALIAN",
+        tautan: "/user/pengembalian",
+      });
+    } catch (e) {
+      console.warn("Gagal membuat notifikasi ajukan kembali:", e.message);
+    }
+
     await conn.commit();
     res.json({
       success: true,
@@ -603,6 +660,21 @@ router.put("/:id/kembalikan", async (req, res) => {
         { kondisi: d.kondisi_lama, status: "DIPINJAM" },
         { kondisi: kondisiBaru, status: "TERSEDIA", tanggal_kembali: tglKembali }
       );
+    }
+
+    // Kirim notifikasi konfirmasi selesai verifikasi pengembalian ke user
+    try {
+      const namaAset = details.map((d) => d.nama_barang).join(", ") || "Aset Dinas";
+      const ringkasanKondisi = details.map((d) => `${d.nama_barang} (${kondisi_kembali[d.aset_id] || d.kondisi_lama || "Baik"})`).join(", ");
+      await buatNotifikasi(conn, {
+        nip: rows[0].nip,
+        judul: "Pengembalian Aset Selesai Diverifikasi",
+        pesan: `Pengembalian untuk aset "${namaAset}" telah resmi diverifikasi dan diterima kembali oleh pengelola BMN pada ${tglKembali} dengan kondisi: ${ringkasanKondisi}. Status peminjaman Anda telah selesai.`,
+        tipe: "SELESAI",
+        tautan: "/user/pengembalian",
+      });
+    } catch (e) {
+      console.warn("Gagal membuat notifikasi konfirmasi kembali:", e.message);
     }
 
     await conn.commit();

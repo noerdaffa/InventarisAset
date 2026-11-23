@@ -350,6 +350,7 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
         setModalUserKembali(null);
         fetchRiwayat();
         fetchAsets(pagination.page);
+        outletCtx?.reloadNotifikasi?.();
       }, 1500);
     } catch (err) {
       setMsgUserKembali({
@@ -826,7 +827,15 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
             <div className="loading-state"><div className="spinner"></div><p className="loading-title">Memuat status peminjaman...</p></div>
           ) : riwayat.filter((r) => r.status !== "DIKEMBALIKAN").length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">📋</div>
+              <div className="empty-state-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </div>
               <h3 className="empty-state-title">Tidak Ada Peminjaman Aktif</h3>
               <p className="empty-state-desc">Anda saat ini tidak memiliki permohonan yang sedang berjalan atau aset yang sedang dipinjam. Buka tab <strong>Daftar Aset BMN</strong> untuk meminjam barang.</p>
             </div>
@@ -870,11 +879,24 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
                                   display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap"
                                 }}
                               >
-                                🔄 Kembalikan
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="1 4 1 10 7 10"></polyline>
+                                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                                </svg>
+                                <span>Kembalikan</span>
                               </button>
                             ) : r.status === "MENUNGGU_PENGEMBALIAN" ? (
-                              <span style={{ fontSize: 11.5, color: "#b45309", fontWeight: 700 }}>
-                                ⏳ Verifikasi Admin
+                              <span style={{
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                                fontSize: 11.5, color: "#b45309", fontWeight: 700,
+                                background: "#fef3c7", padding: "3px 10px", borderRadius: 16,
+                                border: "1px solid #fde68a"
+                              }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="10"></circle>
+                                  <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span>Verifikasi Admin</span>
                               </span>
                             ) : (
                               <span style={{ fontSize: 12, color: "#94a3b8" }}>—</span>
@@ -923,9 +945,14 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
                       style={{
                         padding: "7px 16px", borderRadius: 8, fontSize: 12.5, fontWeight: 700,
                         background: "#16a34a", color: "#fff", border: "none", cursor: "pointer",
+                        display: "inline-flex", alignItems: "center", gap: 6,
                       }}
                     >
-                      🔄 Kembalikan Barang Ini
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="1 4 1 10 7 10"></polyline>
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                      </svg>
+                      <span>Kembalikan Barang Ini</span>
                     </button>
                   </div>
                 ))}
@@ -933,25 +960,46 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
             </div>
           )}
 
-          {/* Bagian 2: Pengembalian Sedang Menunggu Verifikasi Admin */}
+          {/* Bagian 2: Pengembalian Sedang Menunggu Verifikasi Admin (Status Notifikasi Aktif) */}
           {riwayat.filter((r) => r.status === "MENUNGGU_PENGEMBALIAN").length > 0 && (
-            <div style={{ marginBottom: 24, background: "#fefce8", border: "1px solid #fef08a", borderRadius: 12, padding: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#eab308" }} />
-                <h3 style={{ margin: 0, fontSize: 14, color: "#854d0e" }}>Pengembalian Sedang Menunggu Verifikasi Petugas BMN</h3>
+            <div style={{ marginBottom: 24, background: "#fffbeb", border: "1px solid #fef08a", borderRadius: 12, padding: 18 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: "50%", background: "#fef3c7", color: "#b45309",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+                <div>
+                  <h3 style={{ margin: "0 0 4px 0", fontSize: 14.5, fontWeight: 800, color: "#854d0e" }}>
+                    Notifikasi Proses Pengembalian: Menunggu Verifikasi Fisik BMN
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 12.5, color: "#92400e", lineHeight: 1.5 }}>
+                    Pengajuan pengembalian telah berhasil dicatat pada sistem. Silakan serahkan unit fisik barang beserta kelengkapannya ke petugas Pengelola BMN untuk dilakukan pemeriksaan kondisi dan penyelesaian status.
+                  </p>
+                </div>
               </div>
-              <p style={{ margin: "0 0 10px 0", fontSize: 12.5, color: "#713f12" }}>
-                Pengajuan pengembalian telah Anda kirim. Silakan serahkan unit fisik barang ke pengelola BMN agar admin memeriksa kondisi dan melakukan submit selesai.
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
                 {riwayat.filter((r) => r.status === "MENUNGGU_PENGEMBALIAN").map((item) => (
-                  <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", border: "1px solid #fde047", borderRadius: 8, padding: "10px 14px" }}>
+                  <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#ffffff", border: "1px solid #fde047", borderRadius: 8, padding: "11px 16px", flexWrap: "wrap", gap: 8 }}>
                     <div>
-                      <strong style={{ fontSize: 13, color: "#0f172a" }}>{item.nama_aset}</strong>
+                      <strong style={{ fontSize: 13, color: "#0f172a", display: "block" }}>{item.nama_aset}</strong>
                       <div style={{ fontSize: 12, color: "#854d0e" }}>Tanggal Pengajuan Kembali: {formatTanggal(item.tanggal_kembali)}</div>
                     </div>
-                    <span style={{ fontSize: 11.5, fontWeight: 700, background: "#fef9c3", color: "#854d0e", padding: "3px 10px", borderRadius: 12 }}>
-                      Menunggu Cek Admin
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      fontSize: 11.5, fontWeight: 700, background: "#fef9c3", color: "#854d0e",
+                      padding: "4px 11px", borderRadius: 14, border: "1px solid #fef08a"
+                    }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                      <span>Sedang Diverifikasi Petugas</span>
                     </span>
                   </div>
                 ))}
@@ -1194,9 +1242,9 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
                 </label>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
                   {[
-                    { val: "Baik", label: "🟢 Baik", desc: "Normal & lengkap" },
-                    { val: "Rusak Ringan", label: "🟡 Rusak Ringan", desc: "Kendala minor" },
-                    { val: "Rusak Berat", label: "🔴 Rusak Berat", desc: "Tidak berfungsi" },
+                    { val: "Baik", label: "Baik", color: "#16a34a", desc: "Normal & lengkap" },
+                    { val: "Rusak Ringan", label: "Rusak Ringan", color: "#ca8a04", desc: "Kendala minor" },
+                    { val: "Rusak Berat", label: "Rusak Berat", color: "#dc2626", desc: "Tidak berfungsi" },
                   ].map((k) => (
                     <label
                       key={k.val}
@@ -1207,8 +1255,8 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
                         justifyContent: "center",
                         padding: "10px 6px",
                         borderRadius: 8,
-                        border: kondisiUserKembali === k.val ? "2px solid #16a34a" : "1px solid #e2e8f0",
-                        background: kondisiUserKembali === k.val ? "#f0fdf4" : "#f8fafc",
+                        border: kondisiUserKembali === k.val ? "2px solid #0284c7" : "1px solid #e2e8f0",
+                        background: kondisiUserKembali === k.val ? "#f0f9ff" : "#f8fafc",
                         cursor: "pointer",
                         textAlign: "center",
                         transition: "all 0.15s",
@@ -1222,7 +1270,15 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
                         onChange={(e) => setKondisiUserKembali(e.target.value)}
                         style={{ display: "none" }}
                       />
-                      <span style={{ fontSize: 12.5, fontWeight: 700, color: kondisiUserKembali === k.val ? "#15803d" : "#334155" }}>
+                      <span style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: kondisiUserKembali === k.val ? "#0369a1" : "#334155"
+                      }}>
+                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: k.color }} />
                         {k.label}
                       </span>
                       <span style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>{k.desc}</span>
@@ -1258,15 +1314,20 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
                   background: "#f0fdf4",
                   border: "1px solid #bbf7d0",
                   borderRadius: 8,
-                  padding: "10px 12px",
+                  padding: "10px 14px",
                   fontSize: 12,
                   color: "#166534",
                   marginBottom: 18,
                   display: "flex",
-                  gap: 8,
+                  alignItems: "center",
+                  gap: 10,
                 }}
               >
-                <span>ℹ️</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#16a34a" }}>
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
                 <span>
                   Setelah submit, serahkan barang fisik ke <strong>Pengelola BMN</strong> agar admin memeriksa fisik dan melakukan konfirmasi submit selesai.
                 </span>
@@ -1288,9 +1349,16 @@ function AsetList({ userData: propUserData, initialTab = "aset" }) {
                     fontWeight: 700,
                     cursor: submittingUserKembali ? "not-allowed" : "pointer",
                     transition: "background 0.15s",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
                   }}
                 >
-                  {submittingUserKembali ? "Mengajukan..." : "✓ Kirim Pengajuan Pengembalian"}
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>{submittingUserKembali ? "Mengajukan..." : "Kirim Pengajuan Pengembalian"}</span>
                 </button>
                 <button
                   type="button"

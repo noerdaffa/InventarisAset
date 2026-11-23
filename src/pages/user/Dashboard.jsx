@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { Navigate, useNavigate, useLocation, NavLink, Outlet } from "react-router-dom";
+import NotificationBell from "./components/NotificationBell";
 import "./Dashboard.css";
 
 const MENU = [
@@ -66,6 +67,7 @@ function UserDashboard() {
   const location = useLocation();
   const userData = JSON.parse(localStorage.getItem("userData") || "null");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const reloadNotifRef = useRef(null);
 
   const formattedDate = useMemo(() => {
     try {
@@ -187,6 +189,9 @@ function UserDashboard() {
               <span>{formattedDate}</span>
             </div>
 
+            {/* Lonceng Notifikasi Terkini Pegawai */}
+            <NotificationBell userData={userData} onTriggerReload={reloadNotifRef} />
+
             <div className="dash-user-chip" onClick={() => navigate("/user/profile")} role="button" title="Buka profil pegawai">
               <div className="dash-user-avatar">
                 {userData.nama?.[0]?.toUpperCase() || "P"}
@@ -240,7 +245,7 @@ function UserDashboard() {
 
         {/* Konten Halaman Aktif via Outlet */}
         <main className="dash-content">
-          <Outlet context={{ userData }} />
+          <Outlet context={{ userData, reloadNotifikasi: () => reloadNotifRef.current?.() }} />
         </main>
       </div>
     </div>

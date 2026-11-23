@@ -9,6 +9,7 @@ const monitoringRoutes = require("./routes/monitoringRoutes");
 const exportRoutes = require("./routes/exportRoutes");
 const userRoutes = require("./routes/userRoutes");
 const peminjamanRoutes = require("./routes/peminjamanRoutes");
+const { router: notifikasiRoutes } = require("./routes/notifikasiRoutes");
 const app = express();
 
 app.use(cors());
@@ -24,6 +25,7 @@ app.use("/api/monitoring", monitoringRoutes);
 app.use("/api/export", exportRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/peminjaman", peminjamanRoutes);
+app.use("/api/notifikasi", notifikasiRoutes);
 
 app.get("/", (req, res) => {
   res.send("Backend Berfungsi");
